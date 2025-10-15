@@ -21,12 +21,13 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
-import axiosInstance from "@/lib/axios";
+import { projectsApi } from "@/components/api";
+import { Project } from "@/types";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<any>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,8 +35,8 @@ export default function ProjectsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get("/projects");
-      setProjects(res.data.projects);
+      const { projects } = await projectsApi.getAll();
+      setProjects(projects);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to fetch projects");
     } finally {
@@ -47,7 +48,7 @@ export default function ProjectsPage() {
     fetchProjects();
   }, []);
 
-  const handleDeleteClick = (project: any) => {
+  const handleDeleteClick = (project: Project) => {
     setProjectToDelete(project);
     setDeleteDialogOpen(true);
   };
@@ -55,7 +56,7 @@ export default function ProjectsPage() {
   const handleDeleteConfirm = async () => {
     if (projectToDelete) {
       try {
-        await axiosInstance.delete(`/projects/${projectToDelete._id}`);
+        await projectsApi.delete(projectToDelete._id);
         setDeleteDialogOpen(false);
         setProjectToDelete(null);
         fetchProjects();
@@ -109,10 +110,7 @@ export default function ProjectsPage() {
               </>
             }
           >
-            <ListItemText
-              primary={project.title}
-              secondary={project.category?.name}
-            />
+            <ListItemText primary={project.title} />
           </ListItem>
         ))}
       </List>

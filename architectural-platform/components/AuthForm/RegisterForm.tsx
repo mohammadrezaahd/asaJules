@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, TextField, Box, Alert } from '@mui/material';
-import axiosInstance from '@/lib/axios';
+import { authApi } from '@/components/api';
+import { CreateUserDto } from '@/types/dto/user.dto';
 
 export default function RegisterForm() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,14 +19,16 @@ export default function RegisterForm() {
     e.preventDefault();
     setError(null);
 
+    const userData: CreateUserDto = {
+      name,
+      surname,
+      username,
+      email,
+      password,
+    };
+
     try {
-      await axiosInstance.post('/auth/register', {
-        firstName,
-        lastName,
-        username,
-        email,
-        password,
-      });
+      await authApi.register(userData);
       router.push('/auth/login');
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred');
@@ -39,24 +42,24 @@ export default function RegisterForm() {
         margin="normal"
         required
         fullWidth
-        id="firstName"
-        label="First Name"
-        name="firstName"
+        id="name"
+        label="Name"
+        name="name"
         autoComplete="given-name"
         autoFocus
-        value={firstName}
-        onChange={(e) => setFirstName(e.target.value)}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
       />
       <TextField
         margin="normal"
         required
         fullWidth
-        id="lastName"
-        label="Last Name"
-        name="lastName"
+        id="surname"
+        label="Surname"
+        name="surname"
         autoComplete="family-name"
-        value={lastName}
-        onChange={(e) => setLastName(e.target.value)}
+        value={surname}
+        onChange={(e) => setSurname(e.target.value)}
       />
       <TextField
         margin="normal"

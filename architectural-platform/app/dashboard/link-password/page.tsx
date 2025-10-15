@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button, TextField, Box, Typography, Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
+import { authApi } from '@/components/api';
 
 export default function LinkPasswordPage() {
   const { data: session } = useSession();
@@ -19,20 +19,13 @@ export default function LinkPasswordPage() {
     setSuccess(null);
 
     try {
-      const res = await axiosInstance.post('/auth/link-password', { password });
-      setSuccess(res.data.message);
+      await authApi.linkPassword(password);
+      setSuccess('Password set successfully!');
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred');
     }
   };
 
-  if (!session || session.user.provider !== 'google') {
-    return (
-      <Box>
-        <Typography>This page is only for users who signed up with Google.</Typography>
-      </Box>
-    );
-  }
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>

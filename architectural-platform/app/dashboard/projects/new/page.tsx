@@ -16,23 +16,22 @@ import {
 } from "@mui/material";
 import MediaManager from "@/components/MediaManager/MediaManager";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
+import { projectsApi, categoriesApi, usersApi } from "@/components/api";
 import ModelViewer from "@/components/Three/ModelViewer";
+import { Category, User, MediaFile, ModelConfig } from "@/types";
+import { CreateProjectDto } from "@/types/dto/project.dto";
 
 export default function NewProjectPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [thumbnail, setThumbnail] = useState<any>(null);
-  const [gallery, setGallery] = useState<any[]>([]);
-  const [model, setModel] = useState<any>(null);
-  const [modelConfig, setModelConfig] = useState<any>({});
-  const [categories, setCategories] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [thumbnail, setThumbnail] = useState<MediaFile | null>(null);
+  const [gallery, setGallery] = useState<MediaFile[]>([]);
+  const [model, setModel] = useState<MediaFile | null>(null);
+  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [status, setStatus] = useState("Draft");
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -47,18 +46,12 @@ export default function NewProjectPage() {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const [categoriesRes, usersRes] = await Promise.all([
-          axiosInstance.get("/categories").catch((err) => {
-            console.error("Categories API error:", err);
-            return { data: { categories: [] } };
-          }),
-          axiosInstance.get("/users").catch((err) => {
-            console.error("Users API error:", err);
-            return { data: { users: [] } };
-          }),
+        const [fetchedCategories, fetchedUsers] = await Promise.all([
+          categoriesApi.getAll(),
+          usersApi.getAll(),
         ]);
-        setCategories(categoriesRes.data.categories || []);
-        setUsers(usersRes.data.users || []);
+        setCategories(fetchedCategories);
+        setUsers(fetchedUsers);
       } catch (err: any) {
         console.error("General fetch error:", err);
         const errorMessage = `Failed to fetch data: ${
@@ -79,18 +72,12 @@ export default function NewProjectPage() {
     setDataLoading(true);
     const fetchData = async () => {
       try {
-        const [categoriesRes, usersRes] = await Promise.all([
-          axiosInstance.get("/categories").catch((err) => {
-            console.error("Categories API error:", err);
-            return { data: { categories: [] } };
-          }),
-          axiosInstance.get("/users").catch((err) => {
-            console.error("Users API error:", err);
-            return { data: { users: [] } };
-          }),
+        const [fetchedCategories, fetchedUsers] = await Promise.all([
+          categoriesApi.getAll(),
+          usersApi.getAll(),
         ]);
-        setCategories(categoriesRes.data.categories || []);
-        setUsers(usersRes.data.users || []);
+        setCategories(fetchedCategories);
+        setUsers(fetchedUsers);
       } catch (err: any) {
         console.error("General fetch error:", err);
         const errorMessage = `Failed to fetch data: ${
@@ -113,7 +100,7 @@ export default function NewProjectPage() {
     setMediaManagerOpen(true);
   };
 
-  const handleSelectMedia = (selectedMedia: any[]) => {
+  const handleSelectMedia = (selectedMedia: MediaFile[]) => {
     if (mediaManagerTarget === "thumbnail") {
       setThumbnail(selectedMedia[0]);
     } else if (mediaManagerTarget === "gallery") {
@@ -121,17 +108,6 @@ export default function NewProjectPage() {
     } else if (mediaManagerTarget === "model") {
       setModel(selectedMedia[0]);
     }
-  };
-
-  const handleAddTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput]);
-      setTagInput("");
-    }
-  };
-
-  const handleDeleteTag = (tagToDelete: string) => {
-    setTags(tags.filter((tag) => tag !== tagToDelete));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,21 +128,28 @@ export default function NewProjectPage() {
       return;
     }
 
-    const projectData = {
+    const projectData: CreateProjectDto = {
       title,
-      category: category || null, // Allow null if no categories available
+      category: category || '',
       description,
-      thumbnail: thumbnail?._id,
-      gallery: gallery.map((item) => item._id),
-      model: model?._id,
-      modelConfig,
+      thumbnailUrl: thumbnail?.filepath || '',
+      gallery: gallery.map((item) => item.filepath),
+      modelUrl: model?.filepath || '',
+      modelConfig: modelConfig || {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+        lighting: {
+          ambient: 0.5,
+          directional: 0.5,
+          color: '#ffffff',
+        },
+      },
       contributors,
-      tags,
-      status,
     };
 
     try {
-      await axiosInstance.post("/projects", projectData);
+      await projectsApi.create(projectData);
       router.push("/dashboard/projects");
     } catch (err: any) {
       setError(err.response?.data?.message || "Something went wrong");
@@ -256,13 +239,6 @@ export default function NewProjectPage() {
             sx={{ mb: 2 }}
           />
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Status</InputLabel>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <MenuItem value="Draft">Draft</MenuItem>
-              <MenuItem value="Published">Published</MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Contributors</InputLabel>
             <Select
               multiple
@@ -296,25 +272,6 @@ export default function NewProjectPage() {
               )}
             </Select>
           </FormControl>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-            <TextField
-              label="Tags"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-            />
-            <Button onClick={handleAddTag} sx={{ ml: 1 }}>
-              Add
-            </Button>
-          </Box>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 2 }}>
-            {tags.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                onDelete={() => handleDeleteTag(tag)}
-              />
-            ))}
-          </Box>
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
@@ -324,7 +281,7 @@ export default function NewProjectPage() {
             </Button>
             {thumbnail && (
               <Typography sx={{ ml: 2, display: "inline" }}>
-                {thumbnail.name}
+                {thumbnail.filename}
               </Typography>
             )}
           </Box>
@@ -336,8 +293,8 @@ export default function NewProjectPage() {
               Select Gallery Images
             </Button>
             {gallery.map((item) => (
-              <Typography key={item.id} sx={{ ml: 2, display: "inline" }}>
-                {item.name}
+              <Typography key={item._id} sx={{ ml: 2, display: "inline" }}>
+                {item.filename}
               </Typography>
             ))}
           </Box>
@@ -350,7 +307,7 @@ export default function NewProjectPage() {
             </Button>
             {model && (
               <Typography sx={{ ml: 2, display: "inline" }}>
-                {model.name}
+                {model.filename}
               </Typography>
             )}
           </Box>
@@ -360,7 +317,7 @@ export default function NewProjectPage() {
                 3D Model Preview
               </Typography>
               <ModelViewer
-                modelUrl={model.path}
+                modelUrl={model.filepath}
                 initialConfig={modelConfig}
                 onSave={setModelConfig}
                 isAdmin

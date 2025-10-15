@@ -5,8 +5,9 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { verifyPassword } from '@/lib/auth';
 import config from '@/lib/config';
+import { AuthOptions } from 'next-auth';
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: config.auth.client_id || '',
@@ -98,6 +99,8 @@ const handler = NextAuth({
     strategy: 'jwt',
   },
   secret: config.nextAuth.secret,
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

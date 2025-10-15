@@ -10,16 +10,17 @@ import {
   Divider,
 } from "@mui/material";
 import Link from "next/link";
-import axiosInstance from "@/lib/axios";
+import { articlesApi } from "@/components/api";
+import { Article } from "@/types";
 
 export default function ArticlesList() {
-  const [articles, setArticles] = useState([]);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const res = await axiosInstance.get("/articles");
-        setArticles(res.data.articles);
+        const fetchedArticles = await articlesApi.getAll();
+        setArticles(fetchedArticles);
       } catch (error) {
         console.error("Error fetching articles:", error);
       }
@@ -33,7 +34,7 @@ export default function ArticlesList() {
         Latest Articles
       </Typography>
       <List>
-        {articles?.map((article: any, index: number) => (
+        {articles?.map((article, index) => (
           <div key={article._id}>
             <Link
               href={`/articles/${article._id}`}
@@ -43,7 +44,6 @@ export default function ArticlesList() {
               <ListItem>
                 <ListItemText
                   primary={article.title}
-                  secondary={article.excerpt}
                 />
               </ListItem>
             </Link>

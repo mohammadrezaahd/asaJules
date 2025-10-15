@@ -5,15 +5,16 @@ import { Box, Button, Container, Typography, Grid, Card, CardMedia, CircularProg
 import { useParams } from 'next/navigation';
 import ModelViewer from '@/components/Three/ModelViewer';
 import { useSession } from 'next-auth/react';
-import axiosInstance from '@/lib/axios';
+import { projectsApi } from '@/components/api';
+import { Project } from '@/types';
 
 export default function ProjectDetailPage() {
-  const [project, setProject] = useState<any>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModelViewer, setShowModelViewer] = useState(false);
   const params = useParams();
-  const projectId = params.id;
+  const projectId = params.id as string;
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -21,8 +22,8 @@ export default function ProjectDetailPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await axiosInstance.get(`/projects/${projectId}`);
-        setProject(res.data);
+        const fetchedProject = await projectsApi.getById(projectId);
+        setProject(fetchedProject);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to fetch project');
       } finally {
@@ -43,10 +44,7 @@ export default function ProjectDetailPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         {project.title}
       </Typography>
-      <Typography variant="h6" component="h2" color="text.secondary" gutterBottom>
-        {project.category?.name}
-      </Typography>
-      <img src={project.thumbnail?.path} alt={project.title} style={{ width: '100%', height: 'auto', marginBottom: '2rem' }} />
+      <img src={project.thumbnailUrl} alt={project.title} style={{ width: '100%', height: 'auto', marginBottom: '2rem' }} />
       <Typography variant="body1" paragraph>
         {project.description}
       </Typography>
@@ -54,13 +52,13 @@ export default function ProjectDetailPage() {
         Gallery
       </Typography>
       <Grid container spacing={2}>
-        {project.gallery.map((image: any) => (
-          <Grid item key={image._id} xs={12} sm={6} md={4}>
+        {project.gallery.map((imageUrl: string, index: number) => (
+          <Grid item key={index} xs={12} sm={6} md={4}>
             <Card>
               <CardMedia
                 component="img"
                 height="200"
-                image={image.path}
+                image={imageUrl}
                 alt="Gallery image"
               />
             </Card>
@@ -71,7 +69,7 @@ export default function ProjectDetailPage() {
         Contributors
       </Typography>
       <ul>
-        {project.contributors.map((contributor: any) => (
+        {project.contributors.map((contributor) => (
           <li key={contributor._id}>
             <Typography>{contributor.username}</Typography>
           </li>
@@ -80,10 +78,10 @@ export default function ProjectDetailPage() {
       <Button variant="contained" color="primary" sx={{ mt: 4 }} onClick={() => setShowModelViewer(true)}>
         Open 3D Model
       </Button>
-      {showModelViewer && project.model?.path && (
+      {showModelViewer && project.modelUrl && (
         <Box sx={{ mt: 4 }}>
           <ModelViewer
-            modelUrl={project.model.path}
+            modelUrl={project.modelUrl}
             initialConfig={project.modelConfig}
             isAdmin={session?.user?.role === 'ADMIN'}
           />

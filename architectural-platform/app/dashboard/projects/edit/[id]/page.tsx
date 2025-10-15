@@ -4,52 +4,45 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Select, MenuItem, InputLabel, FormControl, CircularProgress, Alert, Chip } from '@mui/material';
 import MediaManager from '@/components/MediaManager/MediaManager';
 import { useParams, useRouter } from 'next/navigation';
-import axiosInstance from '@/lib/axios';
+import { projectsApi, categoriesApi, usersApi } from '@/components/api';
 import ModelViewer from '@/components/Three/ModelViewer';
+import { Category, User, MediaFile, ModelConfig, Project } from '@/types';
+import { UpdateProjectDto } from '@/types/dto/project.dto';
 
 export default function EditProjectPage() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [thumbnail, setThumbnail] = useState<any>(null);
-  const [gallery, setGallery] = useState<any[]>([]);
-  const [model, setModel] = useState<any>(null);
-  const [modelConfig, setModelConfig] = useState<any>({});
-  const [categories, setCategories] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [thumbnail, setThumbnail] = useState<MediaFile | null>(null);
+  const [gallery, setGallery] = useState<MediaFile[]>([]);
+  const [model, setModel] = useState<MediaFile | null>(null);
+  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [status, setStatus] = useState('Draft');
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<'thumbnail' | 'gallery' | 'model' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const params = useParams();
-  const projectId = params.id;
+  const projectId = params.id as string;
   const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [projectRes, categoriesRes, usersRes] = await Promise.all([
-          axiosInstance.get(`/projects/${projectId}`),
-          axiosInstance.get('/categories'),
-          axiosInstance.get('/users'),
+        const [fetchedProject, fetchedCategories, fetchedUsers] = await Promise.all([
+          projectsApi.getById(projectId),
+          categoriesApi.getAll(),
+          usersApi.getAll(),
         ]);
-        const project = projectRes.data;
-        setTitle(project.title);
-        setCategory(project.category._id);
-        setDescription(project.description);
-        setThumbnail(project.thumbnail);
-        setGallery(project.gallery);
-        setModel(project.model);
-        setModelConfig(project.modelConfig || {});
-        setContributors(project.contributors.map((c: any) => c._id));
-        setTags(project.tags);
-        setStatus(project.status);
-        setCategories(categoriesRes.data.categories);
-        setUsers(usersRes.data.users);
+        setTitle(fetchedProject.title);
+        setCategory(fetchedProject.category);
+        setDescription(fetchedProject.description);
+        setModelConfig(fetchedProject.modelConfig || null);
+        setContributors(fetchedProject.contributors.map((c) => c._id));
+        setCategories(fetchedCategories);
+        setUsers(fetchedUsers);
       } catch (err) {
         setError('Failed to fetch project data');
         console.error(err);
@@ -66,7 +59,7 @@ export default function EditProjectPage() {
     setMediaManagerOpen(true);
   };
 
-  const handleSelectMedia = (selectedMedia: any[]) => {
+  const handleSelectMedia = (selectedMedia: MediaFile[]) => {
     if (mediaManagerTarget === 'thumbnail') {
       setThumbnail(selectedMedia[0]);
     } else if (mediaManagerTarget === 'gallery') {
@@ -76,37 +69,24 @@ export default function EditProjectPage() {
     }
   };
 
-  const handleAddTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput]);
-      setTagInput('');
-    }
-  };
-
-  const handleDeleteTag = (tagToDelete: string) => {
-    setTags(tags.filter((tag) => tag !== tagToDelete));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const projectData = {
+    const projectData: UpdateProjectDto = {
       title,
       category,
       description,
-      thumbnail: thumbnail?._id,
-      gallery: gallery.map((item) => item._id),
-      model: model?._id,
-      modelConfig,
+      thumbnailUrl: thumbnail?.filepath,
+      gallery: gallery.map((item) => item.filepath),
+      modelUrl: model?.filepath,
+      modelConfig: modelConfig!,
       contributors,
-      tags,
-      status,
     };
 
     try {
-      await axiosInstance.put(`/projects/${projectId}`, projectData);
+      await projectsApi.update(projectId, projectData);
       router.push('/dashboard/projects');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Something went wrong');
@@ -120,7 +100,7 @@ export default function EditProjectPage() {
     setError(null);
 
     try {
-      await axiosInstance.delete(`/projects/${projectId}`);
+      await projectsApi.delete(projectId);
       router.push('/dashboard/projects');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Something went wrong');
@@ -163,16 +143,6 @@ export default function EditProjectPage() {
         sx={{ mb: 2 }}
       />
       <FormControl fullWidth sx={{ mb: 2 }}>
-        <InputLabel>Status</InputLabel>
-        <Select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <MenuItem value="Draft">Draft</MenuItem>
-          <MenuItem value="Published">Published</MenuItem>
-        </Select>
-      </FormControl>
-      <FormControl fullWidth sx={{ mb: 2 }}>
         <InputLabel>Contributors</InputLabel>
         <Select
           multiple
@@ -193,44 +163,31 @@ export default function EditProjectPage() {
           ))}
         </Select>
       </FormControl>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <TextField
-          label="Tags"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-        />
-        <Button onClick={handleAddTag} sx={{ ml: 1 }}>Add</Button>
-      </Box>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-        {tags.map((tag) => (
-          <Chip key={tag} label={tag} onDelete={() => handleDeleteTag(tag)} />
-        ))}
-      </Box>
       <Box sx={{ mb: 2 }}>
         <Button variant="outlined" onClick={() => handleOpenMediaManager('thumbnail')}>
           Select Thumbnail
         </Button>
-        {thumbnail && <Typography sx={{ ml: 2, display: 'inline' }}>{thumbnail.name}</Typography>}
+        {thumbnail && <Typography sx={{ ml: 2, display: 'inline' }}>{thumbnail.filename}</Typography>}
       </Box>
       <Box sx={{ mb: 2 }}>
         <Button variant="outlined" onClick={() => handleOpenMediaManager('gallery')}>
           Select Gallery Images
         </Button>
         {gallery.map((item) => (
-          <Typography key={item.id} sx={{ ml: 2, display: 'inline' }}>{item.name}</Typography>
+          <Typography key={item._id} sx={{ ml: 2, display: 'inline' }}>{item.filename}</Typography>
         ))}
       </Box>
       <Box sx={{ mb: 2 }}>
         <Button variant="outlined" onClick={() => handleOpenMediaManager('model')}>
           Select 3D Model
         </Button>
-        {model && <Typography sx={{ ml: 2, display: 'inline' }}>{model.name}</Typography>}
+        {model && <Typography sx={{ ml: 2, display: 'inline' }}>{model.filename}</Typography>}
       </Box>
       {model && (
         <Box sx={{ my: 4 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>3D Model Preview</Typography>
           <ModelViewer
-            modelUrl={model.path}
+            modelUrl={model.filepath}
             initialConfig={modelConfig}
             onSave={setModelConfig}
             isAdmin

@@ -11,17 +11,17 @@ import {
   Paper,
   Typography,
 } from '@mui/material';
-import { IUser } from '@/models/User';
-import axiosInstance from '@/lib/axios';
+import { User } from '@/types';
+import { usersApi } from '@/components/api';
 
 const UsersPage = () => {
-  const [users, setUsers] = useState<IUser[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await axiosInstance.get('/users');
-        setUsers(res.data.users);
+        const fetchedUsers = await usersApi.getAll();
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error('Failed to fetch users:', error);
       }
@@ -41,7 +41,6 @@ const UsersPage = () => {
               <TableCell>Name</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
-              <TableCell>Provider</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -50,7 +49,6 @@ const UsersPage = () => {
                 <TableCell>{user.name} {user.surname}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
-                <TableCell>{user.authProvider}</TableCell>
               </TableRow>
             ))}
           </TableBody>

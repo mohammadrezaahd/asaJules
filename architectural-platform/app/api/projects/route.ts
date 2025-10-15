@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
-import { handler } from '../auth/[...nextauth]/route';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 export async function GET(req: Request) {
   await dbConnect();
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(handler);
+  const session = await getServerSession(authOptions);
 
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json({ message: 'Not authorized' }, { status: 401 });

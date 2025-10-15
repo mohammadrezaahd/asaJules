@@ -11,19 +11,20 @@ import {
   Box,
 } from "@mui/material";
 import Link from "next/link";
-import axiosInstance from "@/lib/axios";
+import { projectsApi } from "@/components/api";
+import { Project } from "@/types";
 
 export default function ProjectsGrid() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axiosInstance.get(`/projects?page=${page}`);
-        setProjects(res.data.projects);
-        setTotalPages(res.data.totalPages);
+        const { projects, totalPages } = await projectsApi.getAll({ page });
+        setProjects(projects);
+        setTotalPages(totalPages);
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
@@ -41,8 +42,8 @@ export default function ProjectsGrid() {
         Featured Projects
       </Typography>
       <Grid container spacing={4}>
-        {projects?.map((project: any) => (
-          <Grid key={project._id} size={{ xs: 12, sm: 6, md: 4 }}>
+        {projects?.map((project) => (
+          <Grid item key={project._id} xs={12} sm={6} md={4}>
             <Link
               href={`/projects/${project._id}`}
               passHref
@@ -53,7 +54,7 @@ export default function ProjectsGrid() {
                   component="img"
                   height="140"
                   image={
-                    project.thumbnail?.path || "https://via.placeholder.com/300"
+                    project.thumbnailUrl || "https://via.placeholder.com/300"
                   }
                   alt={project.title}
                 />

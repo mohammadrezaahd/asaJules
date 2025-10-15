@@ -3,19 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, Grid, Card, CardMedia, CardActions, Checkbox, CircularProgress, Alert } from '@mui/material';
 
+import { MediaFile } from '@/types';
+import { mediaApi } from '@/components/api';
+
 interface MediaManagerProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (selectedMedia: any[]) => void;
+  onSelect: (selectedMedia: MediaFile[]) => void;
   multiple?: boolean;
 }
 
-import axiosInstance from '@/lib/axios';
-
 export default function MediaManager({ open, onClose, onSelect, multiple = false }: MediaManagerProps) {
   const [tab, setTab] = useState(0);
-  const [media, setMedia] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any[]>([]);
+  const [media, setMedia] = useState<MediaFile[]>([]);
+  const [selected, setSelected] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -25,8 +26,8 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get('/media');
-      setMedia(res.data.media);
+      const fetchedMedia = await mediaApi.getAll();
+      setMedia(fetchedMedia);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch media');
     } finally {
@@ -44,7 +45,7 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
     setTab(newValue);
   };
 
-  const handleSelect = (item: any) => {
+  const handleSelect = (item: MediaFile) => {
     if (multiple) {
       setSelected((prev) =>
         prev.find((i) => i._id === item._id)
@@ -72,13 +73,9 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
 
     setUploading(true);
     setError(null);
-    const formData = new FormData();
-    formData.append('file', file);
 
     try {
-      await axiosInstance.post('/media', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await mediaApi.upload(file);
       setFile(null);
       setTab(0); // Switch back to library view
       fetchMedia(); // Refresh media library
@@ -110,8 +107,8 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
                       <CardMedia
                         component="img"
                         height="140"
-                        image={item.path}
-                        alt={item.name}
+                        image={item.filepath}
+                        alt={item.filename}
                       />
                       <CardActions>
                         <Checkbox

@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Grid, Card, CardContent, Typography, CardMedia, Pagination, TextField, Select, MenuItem, InputLabel, FormControl, CircularProgress } from '@mui/material';
 import Link from 'next/link';
-import axiosInstance from '@/lib/axios';
+import { projectsApi, categoriesApi } from '@/components/api';
+import { Project, Category } from '@/types';
 
 export default function ProjectsArchivePage() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [category, setCategory] = useState('');
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,8 +19,8 @@ export default function ProjectsArchivePage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axiosInstance.get('/categories');
-        setCategories(res.data.categories);
+        const fetchedCategories = await categoriesApi.getAll();
+        setCategories(fetchedCategories);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to fetch categories');
       }
@@ -32,11 +33,9 @@ export default function ProjectsArchivePage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await axiosInstance.get('/projects', {
-          params: { page, category, search: searchTerm },
-        });
-        setProjects(res.data.projects);
-        setTotalPages(res.data.totalPages);
+        const { projects, totalPages } = await projectsApi.getAll({ page, category, search: searchTerm });
+        setProjects(projects);
+        setTotalPages(totalPages);
       } catch (err: any) {
         setError(err.response?.data?.message || 'Failed to fetch projects');
       } finally {
@@ -80,28 +79,32 @@ export default function ProjectsArchivePage() {
         <CircularProgress />
       ) : (
         <Grid container spacing={4}>
-          {projects.map((project: any) => (
-            <Grid item key={project._id} xs={12} sm={6} md={4}>
-              <Link href={`/projects/${project._id}`} passHref style={{ textDecoration: 'none' }}>
-                <Card>
-                  <CardMedia
-                    component="img"
-                    height="140"
-                    image={project.thumbnail?.path || 'https://via.placeholder.com/300'}
-                    alt={project.title}
-                  />
-                  <CardContent>
-                    <Typography gutterBottom variant="h5" component="div">
-                      {project.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {project.description}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Link>
-            </Grid>
-          ))}
+          {projects.length > 0 ? (
+            projects.map((project) => (
+              <Grid item key={project._id} xs={12} sm={6} md={4}>
+                <Link href={`/projects/${project._id}`} passHref style={{ textDecoration: 'none' }}>
+                  <Card>
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={project.thumbnailUrl || 'https://via.placeholder.com/300'}
+                      alt={project.title}
+                    />
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        {project.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {project.description}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </Grid>
+            ))
+          ) : (
+            <Typography>No projects found.</Typography>
+          )}
         </Grid>
       )}
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

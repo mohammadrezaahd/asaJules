@@ -11,17 +11,17 @@ import {
   Box,
   TextField,
 } from "@mui/material";
-import { IMedia } from "@/models/Media";
-import axiosInstance from "@/lib/axios";
+import { MediaFile } from "@/types";
+import { mediaApi } from "@/components/api";
 
 const MediaLibraryPage = () => {
-  const [media, setMedia] = useState<IMedia[]>([]);
+  const [media, setMedia] = useState<MediaFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchMedia = async () => {
     try {
-      const res = await axiosInstance.get("/media");
-      setMedia(res.data);
+      const fetchedMedia = await mediaApi.getAll();
+      setMedia(fetchedMedia);
     } catch (error) {
       console.error("Failed to fetch media:", error);
     }
@@ -40,15 +40,8 @@ const MediaLibraryPage = () => {
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-
     try {
-      await axiosInstance.post("/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await mediaApi.upload(selectedFile);
       fetchMedia();
     } catch (error) {
       console.error("Failed to upload file:", error);
