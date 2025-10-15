@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button, TextField, Box, Typography, Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import axiosInstance from '@/lib/axios';
 
 export default function LinkPasswordPage() {
   const { data: session } = useSession();
@@ -17,18 +18,11 @@ export default function LinkPasswordPage() {
     setError(null);
     setSuccess(null);
 
-    const res = await fetch('/api/auth/link-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      setSuccess(data.message);
-    } else {
-      setError(data.message);
+    try {
+      const res = await axiosInstance.post('/auth/link-password', { password });
+      setSuccess(res.data.message);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'An error occurred');
     }
   };
 

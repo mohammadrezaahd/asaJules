@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Select, MenuItem, InputLabel, FormControl, CircularProgress, Alert, Chip } from '@mui/material';
 import MediaManager from '@/components/MediaManager/MediaManager';
 import { useRouter } from 'next/navigation';
+import axiosInstance from '@/lib/axios';
+import ModelViewer from '@/components/Three/ModelViewer';
 
 export default function NewProjectPage() {
   const [title, setTitle] = useState('');
@@ -12,6 +14,7 @@ export default function NewProjectPage() {
   const [thumbnail, setThumbnail] = useState<any>(null);
   const [gallery, setGallery] = useState<any[]>([]);
   const [model, setModel] = useState<any>(null);
+  const [modelConfig, setModelConfig] = useState<any>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
@@ -25,18 +28,20 @@ export default function NewProjectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      setCategories(data.categories);
+    const fetchData = async () => {
+      try {
+        const [categoriesRes, usersRes] = await Promise.all([
+          axiosInstance.get('/categories'),
+          axiosInstance.get('/users'),
+        ]);
+        setCategories(categoriesRes.data.categories);
+        setUsers(usersRes.data.users);
+      } catch (err) {
+        setError('Failed to fetch data');
+        console.error(err);
+      }
     };
-    const fetchUsers = async () => {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      setUsers(data.users);
-    };
-    fetchCategories();
-    fetchUsers();
+    fetchData();
   }, []);
 
   const handleOpenMediaManager = (target: 'thumbnail' | 'gallery' | 'model') => {
@@ -77,24 +82,19 @@ export default function NewProjectPage() {
       thumbnail: thumbnail?._id,
       gallery: gallery.map((item) => item._id),
       model: model?._id,
+      modelConfig,
       contributors,
       tags,
       status,
     };
 
-    const res = await fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(projectData),
-    });
-
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await axiosInstance.post('/projects', projectData);
       router.push('/dashboard/projects');
-    } else {
-      const data = await res.json();
-      setError(data.message || 'Something went wrong');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,6 +195,17 @@ export default function NewProjectPage() {
         </Button>
         {model && <Typography sx={{ ml: 2, display: 'inline' }}>{model.name}</Typography>}
       </Box>
+      {model && (
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>3D Model Preview</Typography>
+          <ModelViewer
+            modelUrl={model.path}
+            initialConfig={modelConfig}
+            onSave={setModelConfig}
+            isAdmin
+          />
+        </Box>
+      )}
       <Button type="submit" variant="contained" color="primary" disabled={loading}>
         {loading ? <CircularProgress size={24} /> : 'Create Project'}
       </Button>

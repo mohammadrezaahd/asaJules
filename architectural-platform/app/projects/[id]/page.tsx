@@ -3,11 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Container, Typography, Grid, Card, CardMedia, CircularProgress } from '@mui/material';
 import { useParams } from 'next/navigation';
-import ModelViewer from '@/components/ModelViewer/ModelViewer';
+import ModelViewer from '@/components/Three/ModelViewer';
 import { useSession } from 'next-auth/react';
+import axiosInstance from '@/lib/axios';
 
 export default function ProjectDetailPage() {
   const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModelViewer, setShowModelViewer] = useState(false);
   const params = useParams();
   const projectId = params.id;
@@ -15,9 +18,16 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     const fetchProject = async () => {
-      const res = await fetch(`/api/projects/${projectId}`);
-      const data = await res.json();
-      setProject(data);
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axiosInstance.get(`/projects/${projectId}`);
+        setProject(res.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch project');
+      } finally {
+        setLoading(false);
+      }
     };
     if (projectId) {
       fetchProject();
@@ -72,7 +82,11 @@ export default function ProjectDetailPage() {
       </Button>
       {showModelViewer && project.model?.path && (
         <Box sx={{ mt: 4 }}>
-          <ModelViewer modelUrl={project.model.path} isAdmin={session?.user?.role === 'ADMIN'} />
+          <ModelViewer
+            modelUrl={project.model.path}
+            initialConfig={project.modelConfig}
+            isAdmin={session?.user?.role === 'ADMIN'}
+          />
         </Box>
       )}
     </Container>

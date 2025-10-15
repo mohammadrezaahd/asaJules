@@ -16,6 +16,7 @@
     "@mui/material": "^7.3.4",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",

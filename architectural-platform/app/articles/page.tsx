@@ -4,15 +4,19 @@ import React, { useEffect, useState } from 'react';
 import { Container, Typography, Grid, Card, CardContent } from '@mui/material';
 import { IArticle } from '@/models/Article';
 import Link from 'next/link';
+import axiosInstance from '@/lib/axios';
 
 const ArticlesPage = () => {
   const [articles, setArticles] = useState<IArticle[]>([]);
 
   useEffect(() => {
     const fetchArticles = async () => {
-      const res = await fetch('/api/articles');
-      const data = await res.json();
-      setArticles(data);
+      try {
+        const res = await axiosInstance.get('/articles');
+        setArticles(res.data);
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      }
     };
     fetchArticles();
   }, []);

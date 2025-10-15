@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, TextField, Box, Typography, Alert } from '@mui/material';
+import axiosInstance from '@/lib/axios';
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState('');
@@ -17,17 +18,17 @@ export default function RegisterForm() {
     e.preventDefault();
     setError(null);
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, username, email, password }),
-    });
-
-    if (res.ok) {
+    try {
+      await axiosInstance.post('/auth/register', {
+        firstName,
+        lastName,
+        username,
+        email,
+        password,
+      });
       router.push('/auth/login');
-    } else {
-      const data = await res.json();
-      setError(data.message);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'An error occurred');
     }
   };
 

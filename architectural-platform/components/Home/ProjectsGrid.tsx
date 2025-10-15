@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Grid, Card, CardContent, Typography, CardMedia, Pagination, Box } from '@mui/material';
 import Link from 'next/link';
+import axiosInstance from '@/lib/axios';
 
 export default function ProjectsGrid() {
   const [projects, setProjects] = useState([]);
@@ -11,10 +12,13 @@ export default function ProjectsGrid() {
 
   useEffect(() => {
     const fetchProjects = async () => {
-      const res = await fetch(`/api/projects?page=${page}`);
-      const data = await res.json();
-      setProjects(data.projects);
-      setTotalPages(data.totalPages);
+      try {
+        const res = await axiosInstance.get(`/projects?page=${page}`);
+        setProjects(res.data.projects);
+        setTotalPages(res.data.totalPages);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
     };
     fetchProjects();
   }, [page]);

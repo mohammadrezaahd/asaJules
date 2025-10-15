@@ -12,15 +12,19 @@ import {
   Typography,
 } from '@mui/material';
 import { IUser } from '@/models/User';
+import axiosInstance from '@/lib/axios';
 
 const UsersPage = () => {
   const [users, setUsers] = useState<IUser[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      setUsers(data);
+      try {
+        const res = await axiosInstance.get('/users');
+        setUsers(res.data.users);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
     };
     fetchUsers();
   }, []);

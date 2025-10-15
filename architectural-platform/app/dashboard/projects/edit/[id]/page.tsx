@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Select, MenuItem, InputLabel, FormControl, CircularProgress, Alert, Chip } from '@mui/material';
 import MediaManager from '@/components/MediaManager/MediaManager';
 import { useParams, useRouter } from 'next/navigation';
+import axiosInstance from '@/lib/axios';
+import ModelViewer from '@/components/Three/ModelViewer';
 
 export default function EditProjectPage() {
   const [title, setTitle] = useState('');
@@ -12,6 +14,7 @@ export default function EditProjectPage() {
   const [thumbnail, setThumbnail] = useState<any>(null);
   const [gallery, setGallery] = useState<any[]>([]);
   const [model, setModel] = useState<any>(null);
+  const [modelConfig, setModelConfig] = useState<any>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
@@ -27,36 +30,34 @@ export default function EditProjectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProject = async () => {
-      const res = await fetch(`/api/projects/${projectId}`);
-      const data = await res.json();
-      setTitle(data.title);
-      setCategory(data.category._id);
-      setDescription(data.description);
-      setThumbnail(data.thumbnail);
-      setGallery(data.gallery);
-      setModel(data.model);
-      setContributors(data.contributors.map((c: any) => c._id));
-      setTags(data.tags);
-      setStatus(data.status);
-    };
-
-    const fetchCategories = async () => {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      setCategories(data.categories);
-    };
-
-    const fetchUsers = async () => {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      setUsers(data.users);
+    const fetchData = async () => {
+      try {
+        const [projectRes, categoriesRes, usersRes] = await Promise.all([
+          axiosInstance.get(`/projects/${projectId}`),
+          axiosInstance.get('/categories'),
+          axiosInstance.get('/users'),
+        ]);
+        const project = projectRes.data;
+        setTitle(project.title);
+        setCategory(project.category._id);
+        setDescription(project.description);
+        setThumbnail(project.thumbnail);
+        setGallery(project.gallery);
+        setModel(project.model);
+        setModelConfig(project.modelConfig || {});
+        setContributors(project.contributors.map((c: any) => c._id));
+        setTags(project.tags);
+        setStatus(project.status);
+        setCategories(categoriesRes.data.categories);
+        setUsers(usersRes.data.users);
+      } catch (err) {
+        setError('Failed to fetch project data');
+        console.error(err);
+      }
     };
 
     if (projectId) {
-      fetchProject();
-      fetchCategories();
-      fetchUsers();
+      fetchData();
     }
   }, [projectId]);
 
@@ -98,24 +99,19 @@ export default function EditProjectPage() {
       thumbnail: thumbnail?._id,
       gallery: gallery.map((item) => item._id),
       model: model?._id,
+      modelConfig,
       contributors,
       tags,
       status,
     };
 
-    const res = await fetch(`/api/projects/${projectId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(projectData),
-    });
-
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await axiosInstance.put(`/projects/${projectId}`, projectData);
       router.push('/dashboard/projects');
-    } else {
-      const data = await res.json();
-      setError(data.message || 'Something went wrong');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,17 +119,13 @@ export default function EditProjectPage() {
     setLoading(true);
     setError(null);
 
-    const res = await fetch(`/api/projects/${projectId}`, {
-      method: 'DELETE',
-    });
-
-    setLoading(false);
-
-    if (res.ok) {
+    try {
+      await axiosInstance.delete(`/projects/${projectId}`);
       router.push('/dashboard/projects');
-    } else {
-      const data = await res.json();
-      setError(data.message || 'Something went wrong');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,6 +226,17 @@ export default function EditProjectPage() {
         </Button>
         {model && <Typography sx={{ ml: 2, display: 'inline' }}>{model.name}</Typography>}
       </Box>
+      {model && (
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>3D Model Preview</Typography>
+          <ModelViewer
+            modelUrl={model.path}
+            initialConfig={modelConfig}
+            onSave={setModelConfig}
+            isAdmin
+          />
+        </Box>
+      )}
       <Button type="submit" variant="contained" color="primary" disabled={loading} sx={{ mr: 2 }}>
         {loading ? <CircularProgress size={24} /> : 'Save Changes'}
       </Button>

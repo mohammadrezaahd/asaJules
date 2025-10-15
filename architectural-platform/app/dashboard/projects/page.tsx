@@ -4,21 +4,31 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import Link from 'next/link';
+import axiosInstance from '@/lib/axios';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axiosInstance.get('/projects');
+      setProjects(res.data.projects);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch projects');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchProjects();
   }, []);
-
-  const fetchProjects = async () => {
-    const res = await fetch('/api/projects');
-    const data = await res.json();
-    setProjects(data.projects);
-  };
 
   const handleDeleteClick = (project: any) => {
     setProjectToDelete(project);
@@ -27,12 +37,14 @@ export default function ProjectsPage() {
 
   const handleDeleteConfirm = async () => {
     if (projectToDelete) {
-      await fetch(`/api/projects/${projectToDelete._id}`, {
-        method: 'DELETE',
-      });
-      setDeleteDialogOpen(false);
-      setProjectToDelete(null);
-      fetchProjects();
+      try {
+        await axiosInstance.delete(`/projects/${projectToDelete._id}`);
+        setDeleteDialogOpen(false);
+        setProjectToDelete(null);
+        fetchProjects();
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to delete project');
+      }
     }
   };
 

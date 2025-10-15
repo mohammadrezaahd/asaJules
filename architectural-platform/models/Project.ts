@@ -11,10 +11,16 @@ export interface IProject extends Document {
   tags: string[];
   status: 'Draft' | 'Published';
   modelConfig?: {
-    cameraPosition?: [number, number, number];
-    lighting?: {
-      intensity?: number;
-    };
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+    scale?: number;
+    rotation?: [number, number, number];
+    position?: [number, number, number];
+    backgroundColor?: string;
+    materialMode?: 'solid' | 'wireframe';
+    shadows?: boolean;
+    cameraMode?: 'perspective' | 'orthographic';
   };
 }
 
@@ -30,10 +36,16 @@ const ProjectSchema: Schema = new Schema(
     tags: [{ type: String }],
     status: { type: String, enum: ['Draft', 'Published'], default: 'Draft' },
     modelConfig: {
-      cameraPosition: { type: [Number], default: [0, 0, 5] },
-      lighting: {
-        intensity: { type: Number, default: 1 },
-      },
+      ambientIntensity: { type: Number, default: 0.5 },
+      directionalIntensity: { type: Number, default: 1 },
+      lightColor: { type: String, default: '#ffffff' },
+      scale: { type: Number, default: 1 },
+      rotation: { type: [Number], default: [0, 0, 0] },
+      position: { type: [Number], default: [0, 0, 0] },
+      backgroundColor: { type: String, default: '#f0f0f0' },
+      materialMode: { type: String, enum: ['solid', 'wireframe'], default: 'solid' },
+      shadows: { type: Boolean, default: true },
+      cameraMode: { type: String, enum: ['perspective', 'orthographic'], default: 'perspective' },
     },
   },
   { timestamps: true }

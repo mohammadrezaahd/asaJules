@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Grid, Card, CardContent, Typography, CardMedia, Pagination, TextField, Select, MenuItem, InputLabel, FormControl, CircularProgress } from '@mui/material';
 import Link from 'next/link';
+import axiosInstance from '@/lib/axios';
 
 export default function ProjectsArchivePage() {
   const [projects, setProjects] = useState([]);
@@ -12,12 +13,16 @@ export default function ProjectsArchivePage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      setCategories(data.categories);
+      try {
+        const res = await axiosInstance.get('/categories');
+        setCategories(res.data.categories);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch categories');
+      }
     };
     fetchCategories();
   }, []);
@@ -25,11 +30,18 @@ export default function ProjectsArchivePage() {
   useEffect(() => {
     const fetchProjects = async () => {
       setLoading(true);
-      const res = await fetch(`/api/projects?page=${page}&category=${category}&search=${searchTerm}`);
-      const data = await res.json();
-      setProjects(data.projects);
-      setTotalPages(data.totalPages);
-      setLoading(false);
+      setError(null);
+      try {
+        const res = await axiosInstance.get('/projects', {
+          params: { page, category, search: searchTerm },
+        });
+        setProjects(res.data.projects);
+        setTotalPages(res.data.totalPages);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch projects');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchProjects();
   }, [page, category, searchTerm]);

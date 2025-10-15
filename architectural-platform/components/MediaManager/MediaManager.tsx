@@ -10,6 +10,8 @@ interface MediaManagerProps {
   multiple?: boolean;
 }
 
+import axiosInstance from '@/lib/axios';
+
 export default function MediaManager({ open, onClose, onSelect, multiple = false }: MediaManagerProps) {
   const [tab, setTab] = useState(0);
   const [media, setMedia] = useState<any[]>([]);
@@ -19,28 +21,24 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      fetchMedia();
-    }
-  }, [open, tab]);
-
   const fetchMedia = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/media');
-      if (!res.ok) {
-        throw new Error('Failed to fetch media');
-      }
-      const data = await res.json();
-      setMedia(data.media);
+      const res = await axiosInstance.get('/media');
+      setMedia(res.data.media);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Failed to fetch media');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (open && tab === 0) {
+      fetchMedia();
+    }
+  }, [open, tab]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -78,19 +76,14 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/media', {
-        method: 'POST',
-        body: formData,
+      await axiosInstance.post('/media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to upload file');
-      }
-
       setFile(null);
-      setTab(0);
+      setTab(0); // Switch back to library view
+      fetchMedia(); // Refresh media library
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Failed to upload file');
     } finally {
       setUploading(false);
     }
