@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, TextField, Box, Typography, Alert } from '@mui/material';
+import { Button, TextField, Box, Alert } from '@mui/material';
 import axiosInstance from '@/lib/axios';
 
 export default function RegisterForm() {

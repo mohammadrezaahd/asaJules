@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, ChangeEvent } from 'react';
+import React, { useEffect, useState, ChangeEvent } from "react";
 import {
   Container,
   Typography,
@@ -10,9 +10,9 @@ import {
   Button,
   Box,
   TextField,
-} from '@mui/material';
-import { IMedia } from '@/models/Media';
-import axiosInstance from '@/lib/axios';
+} from "@mui/material";
+import { IMedia } from "@/models/Media";
+import axiosInstance from "@/lib/axios";
 
 const MediaLibraryPage = () => {
   const [media, setMedia] = useState<IMedia[]>([]);
@@ -20,10 +20,10 @@ const MediaLibraryPage = () => {
 
   const fetchMedia = async () => {
     try {
-      const res = await axiosInstance.get('/media');
+      const res = await axiosInstance.get("/media");
       setMedia(res.data);
     } catch (error) {
-      console.error('Failed to fetch media:', error);
+      console.error("Failed to fetch media:", error);
     }
   };
 
@@ -41,17 +41,17 @@ const MediaLibraryPage = () => {
     if (!selectedFile) return;
 
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    formData.append("file", selectedFile);
 
     try {
-      await axiosInstance.post('/upload', formData, {
+      await axiosInstance.post("/upload", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
       fetchMedia();
     } catch (error) {
-      console.error('Failed to upload file:', error);
+      console.error("Failed to upload file:", error);
     }
   };
 
@@ -67,8 +67,8 @@ const MediaLibraryPage = () => {
         </Button>
       </Box>
       <Grid container spacing={4}>
-        {media.map((item) => (
-          <Grid item xs={12} sm={6} md={3} key={item._id}>
+        {media?.map((item) => (
+          <Grid item  xs={12} sm={6} md={3} key={item._id}>
             <Card>
               <CardMedia
                 component="img"

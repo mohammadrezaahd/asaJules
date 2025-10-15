@@ -1,10 +1,13 @@
 const environments = {
   server: {
-    db_username: process.env.NEXT_PUBLIC_DB_USERNAME,
-    db_pwd: process.env.NEXT_PUBLIC_DB_PWD,
-    db_server: process.env.NEXT_PUBLIC_DB_SERVER,
-    db_port: process.env.NEXT_PUBLIC_DB_PORT,
-    db_name: process.env.NEXT_PUBLIC_DB_NAME,
+    // Use MONGODB_URI directly instead of separate components
+    mongodb_uri: process.env.MONGODB_URI,
+    // Keep these for potential future use, but use proper env var names
+    db_username: process.env.DB_USERNAME,
+    db_pwd: process.env.DB_PWD,
+    db_server: process.env.DB_SERVER,
+    db_port: process.env.DB_PORT,
+    db_name: process.env.DB_NAME,
   },
   uri: {
     base_url: process.env.NEXT_PUBLIC_BASE_URL,

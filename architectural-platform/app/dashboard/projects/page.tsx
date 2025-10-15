@@ -1,10 +1,27 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import Link from 'next/link';
-import axiosInstance from '@/lib/axios';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Button,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
+import Link from "next/link";
+import axiosInstance from "@/lib/axios";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -17,10 +34,10 @@ export default function ProjectsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axiosInstance.get('/projects');
+      const res = await axiosInstance.get("/projects");
       setProjects(res.data.projects);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch projects');
+      setError(err.response?.data?.message || "Failed to fetch projects");
     } finally {
       setLoading(false);
     }
@@ -43,14 +60,21 @@ export default function ProjectsPage() {
         setProjectToDelete(null);
         fetchProjects();
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to delete project');
+        setError(err.response?.data?.message || "Failed to delete project");
       }
     }
   };
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
         <Typography variant="h4">Projects</Typography>
         <Button
           variant="contained"
@@ -62,21 +86,33 @@ export default function ProjectsPage() {
         </Button>
       </Box>
       <List>
-        {projects.map((project) => (
+        {projects?.map((project) => (
           <ListItem
             key={project._id}
             secondaryAction={
               <>
-                <IconButton edge="end" aria-label="edit" component={Link} href={`/dashboard/projects/edit/${project._id}`}>
+                <IconButton
+                  edge="end"
+                  aria-label="edit"
+                  component={Link}
+                  href={`/dashboard/projects/edit/${project._id}`}
+                >
                   <EditIcon />
                 </IconButton>
-                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteClick(project)}>
+                <IconButton
+                  edge="end"
+                  aria-label="delete"
+                  onClick={() => handleDeleteClick(project)}
+                >
                   <DeleteIcon />
                 </IconButton>
               </>
             }
           >
-            <ListItemText primary={project.title} secondary={project.category?.name} />
+            <ListItemText
+              primary={project.title}
+              secondary={project.category?.name}
+            />
           </ListItem>
         ))}
       </List>
@@ -87,7 +123,8 @@ export default function ProjectsPage() {
         <DialogTitle>Delete Project</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the project "{projectToDelete?.title}"? This action cannot be undone.
+            Are you sure you want to delete the project "
+            {projectToDelete?.title}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

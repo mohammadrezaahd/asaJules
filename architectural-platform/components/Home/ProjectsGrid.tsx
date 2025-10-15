@@ -1,9 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, CardMedia, Pagination, Box } from '@mui/material';
-import Link from 'next/link';
-import axiosInstance from '@/lib/axios';
+import { useState, useEffect } from "react";
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  CardMedia,
+  Pagination,
+  Box,
+} from "@mui/material";
+import Link from "next/link";
+import axiosInstance from "@/lib/axios";
 
 export default function ProjectsGrid() {
   const [projects, setProjects] = useState([]);
@@ -17,7 +25,7 @@ export default function ProjectsGrid() {
         setProjects(res.data.projects);
         setTotalPages(res.data.totalPages);
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error("Error fetching projects:", error);
       }
     };
     fetchProjects();
@@ -33,14 +41,20 @@ export default function ProjectsGrid() {
         Featured Projects
       </Typography>
       <Grid container spacing={4}>
-        {projects.map((project: any) => (
-          <Grid item key={project._id} xs={12} sm={6} md={4}>
-            <Link href={`/projects/${project._id}`} passHref style={{ textDecoration: 'none' }}>
+        {projects?.map((project: any) => (
+          <Grid key={project._id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Link
+              href={`/projects/${project._id}`}
+              passHref
+              style={{ textDecoration: "none" }}
+            >
               <Card>
                 <CardMedia
                   component="img"
                   height="140"
-                  image={project.thumbnail?.path || 'https://via.placeholder.com/300'}
+                  image={
+                    project.thumbnail?.path || "https://via.placeholder.com/300"
+                  }
                   alt={project.title}
                 />
                 <CardContent>
@@ -56,8 +70,13 @@ export default function ProjectsGrid() {
           </Grid>
         ))}
       </Grid>
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Pagination count={totalPages} page={page} onChange={handleChange} color="primary" />
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={handleChange}
+          color="primary"
+        />
       </Box>
     </Box>
   );

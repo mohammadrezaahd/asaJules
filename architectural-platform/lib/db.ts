@@ -1,10 +1,12 @@
-import mongoose from 'mongoose';
-import config from './config';
+import mongoose from "mongoose";
 
-const MONGODB_URI = `mongodb+srv://${config.server.db_username}:${config.server.db_pwd}@${config.server.db_server}/${config.server.db_name}?retryWrites=true&w=majority`;
+// Use MONGODB_URI directly from environment
+const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  throw new Error(
+    "Please define the MONGODB_URI environment variable inside .env.local"
+  );
 }
 
 interface CachedConnection {
@@ -17,7 +19,10 @@ declare global {
   var mongooseCache: CachedConnection | undefined;
 }
 
-const cached: CachedConnection = global.mongooseCache || { conn: null, promise: null };
+const cached: CachedConnection = global.mongooseCache || {
+  conn: null,
+  promise: null,
+};
 
 if (!global.mongooseCache) {
   global.mongooseCache = cached;
@@ -29,11 +34,14 @@ async function dbConnect(): Promise<typeof mongoose> {
   }
 
   if (!cached.promise) {
+    if (!MONGODB_URI) {
+      throw new Error("MONGODB_URI is not defined");
+    }
     cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => {
       return mongoose;
     });
   }
-  
+
   try {
     cached.conn = await cached.promise;
   } catch (e) {
