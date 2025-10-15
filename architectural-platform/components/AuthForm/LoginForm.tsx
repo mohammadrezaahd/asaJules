@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button, TextField, Box, Typography, Divider, Alert } from '@mui/material';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button, TextField, Box, Divider, Alert } from "@mui/material";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -15,21 +15,33 @@ export default function LoginForm() {
     e.preventDefault();
     setError(null);
 
-    const result = await signIn('credentials', {
+    console.log("Attempting to sign in with:", { email });
+
+    const result = await signIn("credentials", {
       redirect: false,
       email,
       password,
     });
 
+    console.log("SignIn result:", result);
+
     if (result?.error) {
-      setError(result.error);
+      console.error("SignIn error:", result.error);
+      if (result.error === "CredentialsSignin") {
+        setError("Invalid email or password");
+      } else {
+        setError(result.error);
+      }
+    } else if (result?.ok) {
+      console.log("SignIn successful, redirecting...");
+      router.push("/dashboard");
     } else {
-      router.push('/dashboard');
+      setError("An unexpected error occurred");
     }
   };
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (
@@ -59,20 +71,11 @@ export default function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        sx={{ mt: 3, mb: 2 }}
-      >
+      <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
         Sign In
       </Button>
       <Divider sx={{ my: 2 }}>OR</Divider>
-      <Button
-        fullWidth
-        variant="outlined"
-        onClick={handleGoogleSignIn}
-      >
+      <Button fullWidth variant="outlined" onClick={handleGoogleSignIn}>
         Sign in with Google
       </Button>
     </Box>

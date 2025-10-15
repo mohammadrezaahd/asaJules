@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,16 +10,17 @@ import {
   TableRow,
   Paper,
   Typography,
-} from '@mui/material';
-import { IUser } from '@/models/User';
+} from "@mui/material";
+import { IUser } from "@/models/User";
 
 const UsersPage = () => {
   const [users, setUsers] = useState<IUser[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await fetch('/api/users');
+      const res = await fetch("/api/users");
       const data = await res.json();
+      console.log("Fetched users:", data);
       setUsers(data);
     };
     fetchUsers();
@@ -41,12 +42,20 @@ const UsersPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user._id}>
-                <TableCell>{user.name} {user.surname}</TableCell>
+            {users?.map((user, idx) => (
+              <TableRow
+                key={
+                  typeof user._id === "string" || typeof user._id === "number"
+                    ? user._id
+                    : idx
+                }
+              >
+                <TableCell>
+                  {user.firstName} {user.lastName}
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
-                <TableCell>{user.authProvider}</TableCell>
+                <TableCell>{user.provider}</TableCell>
               </TableRow>
             ))}
           </TableBody>
