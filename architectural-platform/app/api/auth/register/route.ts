@@ -29,14 +29,6 @@ export async function POST(req: Request) {
       provider: 'credentials',
     });
 
-    console.log('Creating user with data:', {
-      firstName,
-      lastName,
-      username,
-      email,
-      provider: 'credentials',
-    });
-
     await newUser.save();
 
     return NextResponse.json({ message: 'User created successfully' }, { status: 201 });

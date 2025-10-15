@@ -1,19 +1,23 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IMedia extends Document {
-  filename: string;
-  filepath: string;
-  mimetype: string;
+  name: string;
+  type: 'image' | 'video' | 'model' | 'document';
   size: number;
+  path: string;
   uploadedBy: mongoose.Schema.Types.ObjectId;
 }
 
 const MediaSchema: Schema = new Schema(
   {
-    filename: { type: String, required: true },
-    filepath: { type: String, required: true },
-    mimetype: { type: String, required: true },
+    name: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ['image', 'video', 'model', 'document'],
+      required: true,
+    },
     size: { type: Number, required: true },
+    path: { type: String, required: true },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

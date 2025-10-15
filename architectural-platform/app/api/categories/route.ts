@@ -1,33 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Category from "@/models/Category";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/db';
+import Category from '@/models/Category';
 
-export async function GET() {
+export async function GET(req: Request) {
   await dbConnect();
+
   try {
     const categories = await Category.find({});
-    return NextResponse.json(categories, { status: 200 });
+    return NextResponse.json({ categories });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || token.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  await dbConnect();
-  try {
-    const body = await req.json();
-    const newCategory = new Category(body);
-    await newCategory.save();
-    return NextResponse.json(newCategory, { status: 201 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('Error fetching categories:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

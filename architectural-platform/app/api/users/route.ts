@@ -1,20 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import User from "@/models/User";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/db';
+import User from '@/models/User';
 
-export async function GET(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || token.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(req: Request) {
   await dbConnect();
+
   try {
-    const users = await User.find({});
-    return NextResponse.json(users, { status: 200 });
+    const users = await User.find({}, 'username');
+    return NextResponse.json({ users });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('Error fetching users:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

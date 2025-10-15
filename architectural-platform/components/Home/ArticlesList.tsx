@@ -1,28 +1,41 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { List, ListItem, ListItemText, Typography, Box, Divider } from '@mui/material';
-
-const articles = [
-  { title: 'The Future of Sustainable Architecture', excerpt: 'Exploring eco-friendly materials and designs...' },
-  { title: 'The Rise of Parametric Design', excerpt: 'How algorithms are shaping our cities...' },
-  { title: 'A Look at Brutalist Architecture', excerpt: 'The raw beauty of concrete giants...' },
-];
+import Link from 'next/link';
 
 export default function ArticlesList() {
+  const [articles, setArticles] = useState([]);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const res = await fetch('/api/articles');
+        const data = await res.json();
+        setArticles(data.articles);
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+      }
+    };
+    fetchArticles();
+  }, []);
+
   return (
     <Box sx={{ py: 8, bgcolor: 'background.paper' }}>
       <Typography variant="h4" component="h2" gutterBottom align="center">
         Latest Articles
       </Typography>
       <List>
-        {articles.map((article, index) => (
-          <div key={index}>
-            <ListItem>
-              <ListItemText
-                primary={article.title}
-                secondary={article.excerpt}
-              />
-            </ListItem>
+        {articles.map((article: any, index: number) => (
+          <div key={article._id}>
+            <Link href={`/articles/${article._id}`} passHref style={{ textDecoration: 'none', color: 'inherit' }}>
+              <ListItem>
+                <ListItemText
+                  primary={article.title}
+                  secondary={article.excerpt}
+                />
+              </ListItem>
+            </Link>
             {index < articles.length - 1 && <Divider />}
           </div>
         ))}

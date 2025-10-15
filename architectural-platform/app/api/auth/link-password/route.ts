@@ -29,7 +29,6 @@ export async function POST(req: Request) {
 
     await User.findByIdAndUpdate(session.user.id, {
       passwordHash,
-      provider: 'credentials',
     });
 
     return NextResponse.json({ message: 'Password set successfully' }, { status: 200 });
