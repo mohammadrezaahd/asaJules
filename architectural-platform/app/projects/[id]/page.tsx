@@ -1,23 +1,31 @@
-import { notFound } from 'next/navigation';
-import { Container, Typography, Grid, Paper } from '@mui/material';
-import ModelViewer from '@/components/ModelViewer';
-import dbConnect from '@/lib/db';
-import Project from '@/models/Project';
+import { notFound } from "next/navigation";
+import { Container, Typography, Paper, Grid } from "@mui/material";
+import ModelViewer from "@/components/ModelViewer";
+import dbConnect from "@/lib/db";
+import Project from "@/models/Project";
+import BookmarkButton from "@/components/BookmarkButton";
 
 async function getProject(id: string) {
   await dbConnect();
   try {
-    const project = await Project.findById(id).populate('category').populate('createdBy');
+    const project = await Project.findById(id)
+      .populate("category")
+      .populate("createdBy");
     if (!project) {
       return null;
     }
     return JSON.parse(JSON.stringify(project));
   } catch (error) {
+    console.error(error);
     return null;
   }
 }
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const project = await getProject(params.id);
 
   if (!project) {
@@ -26,16 +34,22 @@ export default async function ProjectPage({ params }: { params: { id: string } }
 
   return (
     <Container>
-      <Typography variant="h2" component="h1" gutterBottom align="center" sx={{ my: 4 }}>
+      <Typography
+        variant="h2"
+        component="h1"
+        gutterBottom
+        align="center"
+        sx={{ my: 4 }}
+      >
         {project.name}
       </Typography>
       <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ height: '500px' }}>
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Paper sx={{ height: "500px" }}>
             <ModelViewer modelUrl={project.modelUrl} />
           </Paper>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <BookmarkButton projectId={project._id} />
           <Typography variant="h5" gutterBottom>
             Description

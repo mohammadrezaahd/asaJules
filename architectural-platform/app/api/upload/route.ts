@@ -1,51 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import multer from 'multer';
 import { getToken } from 'next-auth/jwt';
 import dbConnect from '@/lib/db';
 import Media from '@/models/Media';
-import { NextApiRequest, NextApiResponse } from 'next';
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: './public/uploads',
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-  }),
-});
-
-function runMiddleware(req: NextApiRequest, res: NextApiResponse, fn: any) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result: any) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const res = new NextResponse();
-  const apiReq = req as any;
-  const apiRes = res as any;
-
   try {
-    await runMiddleware(apiReq, apiRes, upload.single('file'));
+    const token = await getToken({ req });
+    if (!token || token.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const file = apiReq.file;
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+
     if (!file) {
       return NextResponse.json({ error: 'File is required.' }, { status: 400 });
     }
 
+    // Create upload directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    try {
+      await mkdir(uploadDir, { recursive: true });
+    } catch {
+      // Directory might already exist, ignore the error
+    }
+
+    // Generate unique filename
+    const filename = `${Date.now()}-${file.name}`;
+    const filepath = path.join(uploadDir, filename);
+
+    // Convert file to buffer and write to disk
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filepath, buffer);
+
+    // Save to database
     await dbConnect();
     const newMedia = new Media({
-      filename: file.filename,
-      filepath: `/uploads/${file.filename}`,
-      mimetype: file.mimetype,
+      filename,
+      filepath: `/uploads/${filename}`,
+      mimetype: file.type,
       size: file.size,
       uploadedBy: token.id,
     });
@@ -53,6 +49,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(newMedia, { status: 201 });
   } catch (error) {
+    console.error('Upload error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

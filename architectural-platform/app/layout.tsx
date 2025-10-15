@@ -2,6 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Layout from '@/components/Layout';
+import { SessionProvider } from 'next-auth/react';
+import { Session } from 'next-auth';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -10,14 +12,12 @@ export const metadata: Metadata = {
   description: 'A hub for 3D model visualization and architectural articles.',
 };
 
-import { SessionProvider } from 'next-auth/react';
-
 export default function RootLayout({
   children,
   session,
 }: {
   children: React.ReactNode;
-  session: any;
+  session: Session | null;
 }) {
   return (
     <html lang="en">

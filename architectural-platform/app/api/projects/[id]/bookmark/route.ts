@@ -28,6 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await user.save();
     return NextResponse.json(user.bookmarks.projects, { status: 200 });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
