@@ -2,12 +2,3 @@
 > architectural-platform@0.1.0 dev
 > next dev
 
-   ▲ Next.js 15.5.5
-   - Local:        http://localhost:3000
-   - Network:      http://192.168.0.2:3000
-   - Environments: .env.local
-
- ✓ Starting...
-   Disabled SWC as replacement for Babel because of custom Babel configuration "babel.config.js" https://nextjs.org/docs/messages/swc-disabled
-   `compiler` options in `next.config.js` will be ignored while using Babel https://nextjs.org/docs/messages/ignored-compiler-options
- ✓ Ready in 2s

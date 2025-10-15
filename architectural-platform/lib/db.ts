@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import config from './config';
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = `mongodb+srv://${config.server.db_username}:${config.server.db_pwd}@${config.server.db_server}/${config.server.db_name}?retryWrites=true&w=majority`;
 
 if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');

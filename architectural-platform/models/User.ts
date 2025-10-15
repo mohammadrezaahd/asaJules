@@ -1,42 +1,46 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUser extends Document {
-  name: string;
-  surname: string;
+  firstName: string;
+  lastName: string;
   username: string;
   email: string;
-  password?: string;
-  avatar?: string;
+  passwordHash?: string;
+  avatarUrl?: string;
   role: 'ADMIN' | 'USER' | 'STUDENT' | 'COLLEAGUE';
-  authProvider: 'manual' | 'google';
+  provider: 'credentials' | 'google';
+  providerId?: string;
   bookmarks: {
     projects: mongoose.Schema.Types.ObjectId[];
     articles: mongoose.Schema.Types.ObjectId[];
   };
+  collaborations: mongoose.Schema.Types.ObjectId[];
 }
 
 const UserSchema: Schema = new Schema(
   {
-    name: { type: String, required: true },
-    surname: { type: String, required: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String },
-    avatar: { type: String },
+    passwordHash: { type: String },
+    avatarUrl: { type: String },
     role: {
       type: String,
       enum: ['ADMIN', 'USER', 'STUDENT', 'COLLEAGUE'],
       default: 'USER',
     },
-    authProvider: {
+    provider: {
       type: String,
-      enum: ['manual', 'google'],
+      enum: ['credentials', 'google'],
       required: true,
     },
+    providerId: { type: String },
     bookmarks: {
       projects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
       articles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Article' }],
     },
+    collaborations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
   },
   { timestamps: true }
 );

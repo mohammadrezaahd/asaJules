@@ -3,8 +3,12 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button } from '@mui/material';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import AvatarMenu from './AvatarMenu';
 
 const Header = () => {
+  const { data: session } = useSession();
+
   return (
     <AppBar position="static" color="primary">
       <Toolbar>
@@ -19,9 +23,18 @@ const Header = () => {
         <Button color="inherit" component={Link} href="/articles">
           Articles
         </Button>
-        <Button color="inherit" component={Link} href="/login">
-          Login
-        </Button>
+        {session?.user ? (
+          <AvatarMenu />
+        ) : (
+          <>
+            <Button color="inherit" component={Link} href="/auth/login">
+              Login
+            </Button>
+            <Button color="inherit" component={Link} href="/auth/register">
+              Register
+            </Button>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );
