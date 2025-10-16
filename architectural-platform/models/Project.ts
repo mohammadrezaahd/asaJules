@@ -2,16 +2,12 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProject extends Document {
   title: string;
-  name?: string; // For compatibility
   category?: mongoose.Schema.Types.ObjectId;
   description: string;
   thumbnail: string; // String for URL
-  thumbnailUrl?: string; // For compatibility
   gallery?: string[]; // String array for URLs  
-  images?: string[]; // For compatibility
   modelUrl: string; // URL string
   contributors?: mongoose.Schema.Types.ObjectId[];
-  collaborators?: mongoose.Schema.Types.ObjectId[]; // For compatibility
   tags?: string[];
   status?: 'Draft' | 'Published';
   createdBy?: mongoose.Schema.Types.ObjectId;
@@ -32,16 +28,12 @@ export interface IProject extends Document {
 const ProjectSchema: Schema = new Schema(
   {
     title: { type: String, required: true },
-    name: { type: String }, // For compatibility
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // Remove required
     description: { type: String, required: true },
     thumbnail: { type: String, required: true }, // Changed to String for URL
-    thumbnailUrl: { type: String }, // For compatibility
     gallery: [{ type: String }], // Changed to String array for URLs
-    images: [{ type: String }], // For compatibility
     modelUrl: { type: String, required: true }, // Required URL field
     contributors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // For compatibility
     tags: [{ type: String }],
     status: { type: String, enum: ['Draft', 'Published'], default: 'Draft' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
     
-    if (!body.thumbnailUrl) {
+    if (!body.thumbnail) {
       return NextResponse.json({ 
         message: 'Thumbnail URL is required' 
       }, { status: 400 });
@@ -105,16 +105,12 @@ export async function POST(req: Request) {
     // Prepare base data for the database model
     const baseData = {
       title: body.title,
-      name: body.title, // For compatibility
       description: body.description,
-      thumbnail: body.thumbnailUrl,
-      thumbnailUrl: body.thumbnailUrl, // For compatibility
+      thumbnail: body.thumbnail,
       modelUrl: body.modelUrl,
       gallery: body.gallery || [],
-      images: body.gallery || [], // For compatibility
       tags: body.tags || [],
       contributors: body.contributors || [],
-      collaborators: body.contributors || [], // For compatibility
       status: 'Published' as const // Default status
     };
     

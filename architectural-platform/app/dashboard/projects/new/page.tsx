@@ -145,7 +145,7 @@ export default function NewProjectPage() {
       title,
       category: category || "",
       description,
-      thumbnailUrl: thumbnail?.filepath || "",
+      thumbnail: thumbnail?.filepath || "",
       gallery: gallery.map((item) => item.filepath),
       modelUrl: model?.filepath || "",
       modelConfig: modelConfig || {

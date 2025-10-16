@@ -5,7 +5,7 @@ export interface Project {
   title: string;
   category: string;
   description: string;
-  thumbnailUrl: string;
+  thumbnail: string;
   gallery: string[];
   modelUrl: string;
   modelConfig: ModelConfig;

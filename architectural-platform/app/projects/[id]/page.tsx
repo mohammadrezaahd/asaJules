@@ -68,10 +68,10 @@ export default function ProjectDetailPage() {
       <Typography variant="h4" component="h1" gutterBottom>
         {project.title}
       </Typography>
-      {project.thumbnailUrl && (
+      {project.thumbnail && (
         <Box sx={{ position: 'relative', width: '100%', height: '400px', mb: 4 }}>
           <Image 
-            src={project.thumbnailUrl} 
+            src={project.thumbnail} 
             alt={project.title} 
             fill
             style={{ objectFit: 'cover' }}

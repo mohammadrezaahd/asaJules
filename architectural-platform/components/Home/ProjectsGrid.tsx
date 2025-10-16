@@ -58,7 +58,7 @@ export default function ProjectsGrid() {
                   component="img"
                   height="140"
                   image={
-                    project.thumbnailUrl || "https://via.placeholder.com/300"
+                    project.thumbnail || "https://via.placeholder.com/300"
                   }
                   alt={project.title}
                 />

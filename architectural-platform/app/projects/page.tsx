@@ -100,7 +100,7 @@ export default function ProjectsArchivePage() {
                   <CardMedia
                     component="img"
                     height="140"
-                    image={project.thumbnailUrl || 'https://via.placeholder.com/300'}
+                    image={project.thumbnail || 'https://via.placeholder.com/300'}
                     alt={project.title}
                   />
                   <CardContent>
