@@ -13,16 +13,54 @@ export async function GET(req: Request) {
     
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const limit = parseInt(searchParams.get("limit") || "12", 10);
+    const search = searchParams.get("search") || "";
+    const type = searchParams.get("type") || "all";
     
-    const media = await Media.find({})
+    // Build search query
+    const query: Record<string, unknown> = {};
+    
+    // Add search filter
+    if (search) {
+      query.filename = { $regex: search, $options: 'i' };
+    }
+    
+    // Add type filter
+    if (type !== "all") {
+      if (type === "images") {
+        query.mimetype = { $regex: /^image\//, $options: 'i' };
+      } else if (type === "models") {
+        // For GLB files, check both mimetype and extension
+        query.$or = [
+          { mimetype: { $in: ['model/gltf-binary', 'application/octet-stream'] } },
+          { filename: { $regex: /\.glb$/i } }
+        ];
+      }
+    }
+    
+    // Get total count for pagination
+    const totalItems = await Media.countDocuments(query);
+    const totalPages = Math.ceil(totalItems / limit);
+    
+    // Fetch paginated results
+    const media = await Media.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
     
-    console.log('Media fetched:', media.length);
+    console.log('Media fetched:', media.length, 'of', totalItems);
     
-    return NextResponse.json(media, { status: 200 });
+    return NextResponse.json({
+      data: media,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: page,
+        itemsPerPage: limit,
+        total: totalItems,
+        limit
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error("Error fetching media:", error);
     return NextResponse.json(

@@ -5,6 +5,8 @@ export interface PaginationInfo {
   currentPage: number;
   total?: number;
   limit?: number;
+  totalItems?: number;
+  itemsPerPage?: number;
 }
 
 export interface ApiResponse<T = unknown> {
