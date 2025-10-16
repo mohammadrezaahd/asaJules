@@ -336,18 +336,22 @@ export default function NewProjectPage() {
             >
               Select Gallery Images
             </Button>
-            {gallery.map((item) => (
-              <Typography key={item._id} sx={{ ml: 2, display: "inline" }}>
-                {item.filename}
-              </Typography>
-            ))}
+            {gallery.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                {gallery.map((item) => (
+                  <Typography key={item._id} variant="body2" sx={{ ml: 2 }}>
+                    • {item.filename}
+                  </Typography>
+                ))}
+              </Box>
+            )}
           </Box>
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
               onClick={() => handleOpenMediaManager("model")}
             >
-              Select 3D Model
+              Select 3D Model (.glb)
             </Button>
             {model && (
               <Typography sx={{ ml: 2, display: "inline" }}>
@@ -392,6 +396,13 @@ export default function NewProjectPage() {
             onClose={() => setMediaManagerOpen(false)}
             onSelect={handleSelectMedia}
             multiple={mediaManagerTarget === "gallery"}
+            mediaType={
+              mediaManagerTarget === "model" 
+                ? "models" 
+                : mediaManagerTarget === "thumbnail" || mediaManagerTarget === "gallery" 
+                  ? "images" 
+                  : "all"
+            }
           />
         </>
       )}
