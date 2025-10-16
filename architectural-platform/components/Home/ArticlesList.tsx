@@ -19,8 +19,12 @@ export default function ArticlesList() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const fetchedArticles = await articlesApi.getAll();
-        setArticles(fetchedArticles);
+        const response = await articlesApi.getAll();
+        if (response.isSuccess && response.data) {
+          setArticles(response.data);
+        } else {
+          console.error("Error fetching articles:", response.error);
+        }
       } catch (error) {
         console.error("Error fetching articles:", error);
       }

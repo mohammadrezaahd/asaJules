@@ -21,7 +21,11 @@ const MediaLibraryPage = () => {
   const fetchMedia = async () => {
     try {
       const fetchedMedia = await mediaApi.getAll();
-      setMedia(fetchedMedia);
+      if (fetchedMedia.isSuccess && fetchedMedia.data) {
+        const data = fetchedMedia.data;
+        setMedia(data);
+      }
+      console.log("Media fetched:", fetchedMedia);
     } catch (error) {
       console.error("Failed to fetch media:", error);
     }
@@ -60,8 +64,8 @@ const MediaLibraryPage = () => {
         </Button>
       </Box>
       <Grid container spacing={4}>
-        {media?.map((item) => (
-          <Grid item  xs={12} sm={6} md={3} key={item._id}>
+        {media.map((item) => (
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item._id}>
             <Card>
               <CardMedia
                 component="img"

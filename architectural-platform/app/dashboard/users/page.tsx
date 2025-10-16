@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,9 +10,9 @@ import {
   TableRow,
   Paper,
   Typography,
-} from '@mui/material';
-import { User } from '@/types';
-import { usersApi } from '@/components/api';
+} from "@mui/material";
+import { User } from "@/types";
+import { usersApi } from "@/components/api";
 
 const UsersPage = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,9 +21,12 @@ const UsersPage = () => {
     const fetchUsers = async () => {
       try {
         const fetchedUsers = await usersApi.getAll();
-        setUsers(fetchedUsers);
+        if (fetchedUsers.isSuccess && fetchedUsers.data) {
+          const data = fetchedUsers.data;
+          setUsers(data);
+        }
       } catch (error) {
-        console.error('Failed to fetch users:', error);
+        console.error("Failed to fetch users:", error);
       }
     };
     fetchUsers();
@@ -46,7 +49,9 @@ const UsersPage = () => {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user._id}>
-                <TableCell>{user.name} {user.surname}</TableCell>
+                <TableCell>
+                  {user.name} {user.surname}
+                </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
               </TableRow>

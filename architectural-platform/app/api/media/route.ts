@@ -1,80 +1,83 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import dbConnect from '@/lib/db';
-import Media from '@/models/Media';
-import { handler } from '../auth/[...nextauth]/route';
-import { NextRequest } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/db";
+import Media from "@/models/Media";
+import { NextRequest } from "next/server";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
+import { getToken } from "next-auth/jwt";
 
 export async function GET(req: Request) {
-  await dbConnect();
-  const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const type = searchParams.get('type');
-
-  const query: any = {};
-  if (type) {
-    query.type = type;
-  }
-
   try {
-    const media = await Media.find(query)
-      .populate('uploadedBy')
+    await dbConnect();
+    console.log('Database connected successfully for media');
+    
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    
+    const media = await Media.find({})
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 });
-
-    const total = await Media.countDocuments(query);
-
-    return NextResponse.json({
-      media,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-    });
+    
+    console.log('Media fetched:', media.length);
+    
+    return NextResponse.json(media, { status: 200 });
   } catch (error) {
-    console.error('Error fetching media:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching media:", error);
+    return NextResponse.json(
+      { error: "Server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(handler);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
+  const token = await getToken({ req });
+  if (!token || token.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   await dbConnect();
 
-  const formData = await req.formData();
-  const file = formData.get('file') as File;
-
-  if (!file) {
-    return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filename = `${Date.now()}-${file.name}`;
-  const uploadsDir = join(process.cwd(), 'public/uploads');
-
   try {
-    await require('fs/promises').mkdir(uploadsDir, { recursive: true });
-    await writeFile(join(uploadsDir, filename), buffer);
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
 
+    if (!file) {
+      return NextResponse.json({ error: "File is required." }, { status: 400 });
+    }
+
+    // Create upload directory if it doesn't exist
+    const uploadsDir = join(process.cwd(), "public", "uploads");
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch {
+      // Directory might already exist, ignore the error
+    }
+
+    // Generate unique filename
+    const filename = `${Date.now()}-${file.name}`;
+    const filepath = join(uploadsDir, filename);
+
+    // Convert file to buffer and write to disk
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    await writeFile(filepath, buffer);
+
+    // Save to database
     const newMedia = new Media({
-      name: file.name,
-      type: file.type.split('/')[0],
+      filename,
+      filepath: `/uploads/${filename}`,
+      mimetype: file.type,
       size: file.size,
-      path: `/uploads/${filename}`,
-      uploadedBy: session.user.id,
+      uploadedBy: token.id,
     });
-
     await newMedia.save();
+
     return NextResponse.json(newMedia, { status: 201 });
   } catch (error) {
-    console.error('Error uploading media:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Upload error:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

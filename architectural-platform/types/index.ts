@@ -5,6 +5,7 @@ export * from './interfaces/media.interfaces';
 export * from './interfaces/project.interfaces';
 export * from './interfaces/user.interfaces';
 export * from './interfaces/articles.interfaces';
+export * from './interfaces/api.interfaces';
 
 // DTOs
 export * from './dto/project.dto';

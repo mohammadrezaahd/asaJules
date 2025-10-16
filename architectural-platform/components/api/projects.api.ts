@@ -1,35 +1,43 @@
 import axiosInstance from "./axios.config";
 import { Project } from "@/types";
 import { CreateProjectDto, UpdateProjectDto } from "@/types/dto/project.dto";
+import { ApiResponse, ListApiResponse } from "@/types";
+import { apiUtils, apiListUtils } from "./apiUtils";
 
 export const projectsApi = {
-  async getAll(params?: { page?: number; category?: string; search?: string }): Promise<{ projects: Project[], totalPages: number }> {
-    const { data } = await axiosInstance.get("/projects", { params });
-    return data;
+  async getAll(params?: { page?: number; limit?: number; category?: string; search?: string }): Promise<ListApiResponse<Project>> {
+    return apiListUtils<Project>(() => 
+      axiosInstance.get("/projects", { params }).then(res => res.data)
+    );
   },
 
-  async getById(id: string): Promise<Project> {
-    const { data } = await axiosInstance.get(`/projects/${id}`);
-    return data;
+  async getById(id: string): Promise<ApiResponse<Project>> {
+    return apiUtils<Project>(() => 
+      axiosInstance.get(`/projects/${id}`).then(res => res.data)
+    );
   },
 
-  async create(projectData: CreateProjectDto): Promise<Project> {
-    const { data } = await axiosInstance.post("/projects", projectData);
-    return data;
+  async create(projectData: CreateProjectDto): Promise<ApiResponse<Project>> {
+    return apiUtils<Project>(() => 
+      axiosInstance.post("/projects", projectData).then(res => res.data)
+    );
   },
 
-  async update(id: string, projectData: UpdateProjectDto): Promise<Project> {
-    const { data } = await axiosInstance.put(`/projects/${id}`, projectData);
-    return data;
+  async update(id: string, projectData: UpdateProjectDto): Promise<ApiResponse<Project>> {
+    return apiUtils<Project>(() => 
+      axiosInstance.put(`/projects/${id}`, projectData).then(res => res.data)
+    );
   },
 
-  async delete(id: string): Promise<{ success: boolean }> {
-    const { data } = await axiosInstance.delete(`/projects/${id}`);
-    return data;
+  async delete(id: string): Promise<ApiResponse<{ success: boolean }>> {
+    return apiUtils<{ success: boolean }>(() => 
+      axiosInstance.delete(`/projects/${id}`).then(res => res.data)
+    );
   },
 
-  async bookmark(id: string): Promise<{ success: boolean }> {
-    const { data } = await axiosInstance.post(`/projects/${id}/bookmark`);
-    return data;
+  async bookmark(id: string): Promise<ApiResponse<{ success: boolean }>> {
+    return apiUtils<{ success: boolean }>(() => 
+      axiosInstance.post(`/projects/${id}/bookmark`).then(res => res.data)
+    );
   },
 };

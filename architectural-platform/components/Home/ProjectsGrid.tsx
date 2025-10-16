@@ -22,9 +22,13 @@ export default function ProjectsGrid() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const { projects, totalPages } = await projectsApi.getAll({ page });
-        setProjects(projects);
-        setTotalPages(totalPages);
+        const response = await projectsApi.getAll({ page });
+        if (response.isSuccess && response.data && response.pagination) {
+          setProjects(response.data);
+          setTotalPages(response.pagination.totalPages);
+        } else {
+          console.error("Error fetching projects:", response.error);
+        }
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
@@ -43,7 +47,7 @@ export default function ProjectsGrid() {
       </Typography>
       <Grid container spacing={4}>
         {projects?.map((project) => (
-          <Grid item key={project._id} xs={12} sm={6} md={4}>
+          <Grid key={project._id} size={{ xs: 12, sm: 6, md: 4 }}>
             <Link
               href={`/projects/${project._id}`}
               passHref

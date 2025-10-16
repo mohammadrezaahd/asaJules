@@ -1,10 +1,26 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, Tabs, Tab, Grid, Card, CardMedia, CardActions, Checkbox, CircularProgress, Alert } from '@mui/material';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tabs,
+  Tab,
+  Grid,
+  Card,
+  CardMedia,
+  CardActions,
+  Checkbox,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
 
-import { MediaFile } from '@/types';
-import { mediaApi } from '@/components/api';
+import { MediaFile } from "@/types";
+import { mediaApi } from "@/components/api";
 
 interface MediaManagerProps {
   open: boolean;
@@ -13,7 +29,12 @@ interface MediaManagerProps {
   multiple?: boolean;
 }
 
-export default function MediaManager({ open, onClose, onSelect, multiple = false }: MediaManagerProps) {
+export default function MediaManager({
+  open,
+  onClose,
+  onSelect,
+  multiple = false,
+}: MediaManagerProps) {
   const [tab, setTab] = useState(0);
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [selected, setSelected] = useState<MediaFile[]>([]);
@@ -26,10 +47,14 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
     setLoading(true);
     setError(null);
     try {
-      const fetchedMedia = await mediaApi.getAll();
-      setMedia(fetchedMedia);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch media');
+      const response = await mediaApi.getAll();
+      if (response.isSuccess && response.data) {
+        setMedia(response.data);
+      } else {
+        setError(response.error || "Failed to fetch media");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch media");
     } finally {
       setLoading(false);
     }
@@ -75,12 +100,16 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
     setError(null);
 
     try {
-      await mediaApi.upload(file);
-      setFile(null);
-      setTab(0); // Switch back to library view
-      fetchMedia(); // Refresh media library
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload file');
+      const response = await mediaApi.upload(file);
+      if (response.isSuccess) {
+        setFile(null);
+        setTab(0); // Switch back to library view
+        fetchMedia(); // Refresh media library
+      } else {
+        setError(response.error || "Failed to upload file");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to upload file");
     } finally {
       setUploading(false);
     }
@@ -102,7 +131,7 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
             ) : (
               <Grid container spacing={2}>
                 {media.map((item) => (
-                  <Grid item key={item._id} xs={6} sm={4} md={3}>
+                  <Grid key={item._id} size={{ xs: 6, sm: 4, md: 3 }}>
                     <Card>
                       <CardMedia
                         component="img"
@@ -126,8 +155,12 @@ export default function MediaManager({ open, onClose, onSelect, multiple = false
         {tab === 1 && (
           <Box sx={{ pt: 2 }}>
             <input type="file" onChange={handleFileChange} />
-            <Button onClick={handleUpload} variant="contained" disabled={!file || uploading}>
-              {uploading ? <CircularProgress size={24} /> : 'Upload'}
+            <Button
+              onClick={handleUpload}
+              variant="contained"
+              disabled={!file || uploading}
+            >
+              {uploading ? <CircularProgress size={24} /> : "Upload"}
             </Button>
           </Box>
         )}

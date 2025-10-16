@@ -1,8 +1,7 @@
-import { User } from './user.interfaces';
+import { User } from "./user.interfaces";
 
 export interface MediaFile {
   _id: string;
-  name: string;
   filename: string;
   filepath: string;
   mimetype: string;
@@ -14,7 +13,6 @@ export interface MediaFile {
 
 export interface UploadResponse {
   _id: string;
-  name: string;
   filename: string;
   filepath: string;
   mimetype: string;

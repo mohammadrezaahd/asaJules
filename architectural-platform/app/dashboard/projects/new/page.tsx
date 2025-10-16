@@ -40,6 +40,7 @@ export default function NewProjectPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -50,15 +51,18 @@ export default function NewProjectPage() {
           categoriesApi.getAll(),
           usersApi.getAll(),
         ]);
-        setCategories(fetchedCategories);
-        setUsers(fetchedUsers);
-      } catch (err: any) {
+
+        if (fetchedCategories.isSuccess && fetchedCategories.data) {
+          setCategories(fetchedCategories.data);
+        }
+
+        if (fetchedUsers.isSuccess && fetchedUsers.data) {
+          setUsers(fetchedUsers.data);
+        }
+      } catch (err: unknown) {
         console.error("General fetch error:", err);
-        const errorMessage = `Failed to fetch data: ${
-          err.response?.status === 404
-            ? "API endpoints not found"
-            : err.message || "Unknown error"
-        }`;
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch data";
         setDataError(errorMessage);
       } finally {
         setDataLoading(false);
@@ -76,15 +80,18 @@ export default function NewProjectPage() {
           categoriesApi.getAll(),
           usersApi.getAll(),
         ]);
-        setCategories(fetchedCategories);
-        setUsers(fetchedUsers);
-      } catch (err: any) {
+
+        if (fetchedCategories.isSuccess && fetchedCategories.data) {
+          setCategories(fetchedCategories.data);
+        }
+
+        if (fetchedUsers.isSuccess && fetchedUsers.data) {
+          setUsers(fetchedUsers.data);
+        }
+      } catch (err: unknown) {
         console.error("General fetch error:", err);
-        const errorMessage = `Failed to fetch data: ${
-          err.response?.status === 404
-            ? "API endpoints not found"
-            : err.message || "Unknown error"
-        }`;
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch data";
         setDataError(errorMessage);
       } finally {
         setDataLoading(false);
@@ -128,13 +135,19 @@ export default function NewProjectPage() {
       return;
     }
 
+    if (!description.trim()) {
+      setError("Project description is required");
+      setLoading(false);
+      return;
+    }
+
     const projectData: CreateProjectDto = {
       title,
-      category: category || '',
+      category: category || "",
       description,
-      thumbnailUrl: thumbnail?.filepath || '',
+      thumbnailUrl: thumbnail?.filepath || "",
       gallery: gallery.map((item) => item.filepath),
-      modelUrl: model?.filepath || '',
+      modelUrl: model?.filepath || "",
       modelConfig: modelConfig || {
         position: [0, 0, 0],
         rotation: [0, 0, 0],
@@ -142,17 +155,24 @@ export default function NewProjectPage() {
         lighting: {
           ambient: 0.5,
           directional: 0.5,
-          color: '#ffffff',
+          color: "#ffffff",
         },
       },
       contributors,
     };
 
     try {
-      await projectsApi.create(projectData);
-      router.push("/dashboard/projects");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Something went wrong");
+      const result = await projectsApi.create(projectData);
+      if (result.isSuccess) {
+        setSuccess("Project created successfully!");
+        setTimeout(() => {
+          router.push("/dashboard/projects");
+        }, 1500);
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Something went wrong";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -163,7 +183,18 @@ export default function NewProjectPage() {
       <Typography variant="h4" sx={{ mb: 2 }}>
         Add New Project
       </Typography>
-      {error && <Alert severity="error">{error}</Alert>}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       {dataError && (
         <Alert
@@ -205,16 +236,22 @@ export default function NewProjectPage() {
           <TextField
             label="Project Title"
             fullWidth
+            required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             sx={{ mb: 2 }}
+            error={!title.trim() && title.length > 0}
+            helperText={
+              !title.trim() && title.length > 0 ? "Title is required" : ""
+            }
           />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Category</InputLabel>
+          <FormControl fullWidth sx={{ mb: 2 }} required>
+            <InputLabel>Category *</InputLabel>
             <Select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={categories.length === 0}
+              error={!category && categories.length > 0}
             >
               {categories.length === 0 ? (
                 <MenuItem value="" disabled>
@@ -232,11 +269,18 @@ export default function NewProjectPage() {
           <TextField
             label="Description"
             fullWidth
+            required
             multiline
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             sx={{ mb: 2 }}
+            error={!description.trim() && description.length > 0}
+            helperText={
+              !description.trim() && description.length > 0
+                ? "Description is required"
+                : ""
+            }
           />
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Contributors</InputLabel>
@@ -328,9 +372,20 @@ export default function NewProjectPage() {
             type="submit"
             variant="contained"
             color="primary"
-            disabled={loading}
+            disabled={loading || success !== null}
+            size="large"
+            sx={{ mt: 2 }}
           >
-            {loading ? <CircularProgress size={24} /> : "Create Project"}
+            {loading ? (
+              <>
+                <CircularProgress size={24} sx={{ mr: 1 }} />
+                Creating...
+              </>
+            ) : success ? (
+              "Redirecting..."
+            ) : (
+              "Create Project"
+            )}
           </Button>
           <MediaManager
             open={mediaManagerOpen}

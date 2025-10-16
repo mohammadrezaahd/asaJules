@@ -14,6 +14,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -35,10 +37,15 @@ export default function ProjectsPage() {
     setLoading(true);
     setError(null);
     try {
-      const { projects } = await projectsApi.getAll();
-      setProjects(projects);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to fetch projects");
+      const fetchedProjects = await projectsApi.getAll();
+      if (fetchedProjects.isSuccess && fetchedProjects.data) {
+        const data = fetchedProjects.data;
+        setProjects(data);
+      }
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch projects";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,8 +67,10 @@ export default function ProjectsPage() {
         setDeleteDialogOpen(false);
         setProjectToDelete(null);
         fetchProjects();
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to delete project");
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to delete project";
+        setError(errorMessage);
       }
     }
   };
@@ -86,34 +95,47 @@ export default function ProjectsPage() {
           Add New Project
         </Button>
       </Box>
-      <List>
-        {projects?.map((project) => (
-          <ListItem
-            key={project._id}
-            secondaryAction={
-              <>
-                <IconButton
-                  edge="end"
-                  aria-label="edit"
-                  component={Link}
-                  href={`/dashboard/projects/edit/${project._id}`}
-                >
-                  <EditIcon />
-                </IconButton>
-                <IconButton
-                  edge="end"
-                  aria-label="delete"
-                  onClick={() => handleDeleteClick(project)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </>
-            }
-          >
-            <ListItemText primary={project.title} />
-          </ListItem>
-        ))}
-      </List>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <List>
+          {projects?.map((project) => (
+            <ListItem
+              key={project._id}
+              secondaryAction={
+                <>
+                  <IconButton
+                    edge="end"
+                    aria-label="edit"
+                    component={Link}
+                    href={`/dashboard/projects/edit/${project._id}`}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleDeleteClick(project)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </>
+              }
+            >
+              <ListItemText primary={project.title} />
+            </ListItem>
+          ))}
+        </List>
+      )}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -121,8 +143,8 @@ export default function ProjectsPage() {
         <DialogTitle>Delete Project</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the project "
-            {projectToDelete?.title}"? This action cannot be undone.
+            Are you sure you want to delete the project &quot;
+            {projectToDelete?.title}&quot;? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

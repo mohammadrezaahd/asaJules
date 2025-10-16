@@ -3,10 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { hashPassword } from '@/lib/auth';
-import { handler } from '../[...nextauth]/route';
+import { authOptions } from '../[...nextauth]/route';
 
 export async function POST(req: Request) {
-  const session = await getServerSession(handler);
+  const session = await getServerSession(authOptions);
 
   if (!session || !session.user) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
