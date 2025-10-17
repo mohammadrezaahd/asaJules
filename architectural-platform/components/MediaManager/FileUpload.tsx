@@ -149,7 +149,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
               : ""
           }
           inputProps={{
-            accept: getAcceptAttribute()
+            accept: getAcceptAttribute(),
           }}
         />
 

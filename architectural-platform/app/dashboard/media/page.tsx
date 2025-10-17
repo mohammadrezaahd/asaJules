@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import AdvancedMediaManager from "@/components/MediaManager/AdvancedMediaManager";
+import MediaManager from "@/components/MediaManager/MediaManager";
 
 const MediaLibraryPage = () => {
   return (
-    <AdvancedMediaManager
+    <MediaManager
       title="Media Library"
       allowedType="all"
       showUpload={true}

@@ -24,6 +24,7 @@ interface MediaGridProps {
   onDelete?: (id: string) => void;
   onSelect?: (media: MediaFile) => void;
   loading?: boolean;
+  selectedMedia?: MediaFile[];
 }
 
 const MediaGrid: React.FC<MediaGridProps> = ({
@@ -31,6 +32,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   onDelete,
   onSelect,
   loading = false,
+  selectedMedia = [],
 }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -92,6 +94,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
       {media.map((item) => {
         const fileType = getFileType(item.mimetype, item.filename);
         const isImage = fileType === 'image';
+        const isSelected = selectedMedia.some(selected => selected._id === item._id);
         
         return (
           <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={item._id}>
@@ -101,6 +104,8 @@ const MediaGrid: React.FC<MediaGridProps> = ({
                 display: 'flex', 
                 flexDirection: 'column',
                 cursor: onSelect ? 'pointer' : 'default',
+                border: isSelected ? 2 : 1,
+                borderColor: isSelected ? 'primary.main' : 'divider',
                 '&:hover': onSelect ? {
                   boxShadow: 4,
                   transform: 'translateY(-2px)',
