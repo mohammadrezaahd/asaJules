@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -15,23 +15,26 @@ import {
   Chip,
 } from "@mui/material";
 import MediaManager from "@/components/MediaManager/MediaManager";
+import CategoryAutocomplete from "@/components/Categories/CategoryAutocomplete";
+import TagsInput from "@/components/Common/TagsInput";
 import { useParams, useRouter } from "next/navigation";
-import { projectsApi, categoriesApi, usersApi } from "@/components/api";
+import { projectsApi, usersApi } from "@/components/api";
 import ModelViewer from "@/components/Three/ModelViewer";
-import { Category, User, MediaFile, ModelConfig } from "@/types";
+import { User, MediaFile, ModelConfig } from "@/types";
 import { UpdateProjectDto } from "@/types/dto/project.dto";
 
 export default function EditProjectPage() {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState<MediaFile | null>(null);
   const [gallery, setGallery] = useState<MediaFile[]>([]);
   const [model, setModel] = useState<MediaFile | null>(null);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [status, setStatus] = useState<'Draft' | 'Published'>('Draft');
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -43,28 +46,133 @@ export default function EditProjectPage() {
   const projectId = params.id as string;
   const router = useRouter();
 
+  const handleModelConfigChange = useCallback((config: {
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+    scale?: number;
+    rotation?: [number, number, number];
+    position?: [number, number, number];
+    backgroundColor?: string;
+    materialMode?: 'solid' | 'wireframe';
+    shadows?: boolean;
+    cameraMode?: 'perspective' | 'orthographic';
+  }) => {
+    setModelConfig({
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
+      scale: [config.scale || 1, config.scale || 1, config.scale || 1],
+      lighting: {
+        ambient: config.ambientIntensity || 0.5,
+        directional: config.directionalIntensity || 1,
+        color: config.lightColor || '#ffffff',
+      },
+      materialMode: config.materialMode || 'solid',
+      backgroundColor: config.backgroundColor || '#f0f0f0',
+      shadows: config.shadows ?? true,
+      cameraMode: config.cameraMode || 'perspective',
+    });
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       setFetchLoading(true);
       try {
-        const [fetchedProject, fetchedCategories, fetchedUsers] =
+        const [fetchedProject, fetchedUsers] =
           await Promise.all([
             projectsApi.getById(projectId),
-            categoriesApi.getAll(),
             usersApi.getAll(),
           ]);
 
         if (fetchedProject.isSuccess && fetchedProject.data) {
           const project = fetchedProject.data;
           setTitle(project.title);
-          setCategory(project.category);
+          
+          // Handle categories - they might be populated objects or just IDs
+          const categoryIds = project.categories?.map((cat: string | { _id: string }) => 
+            typeof cat === 'string' ? cat : cat._id
+          ) || [];
+          setCategories(categoryIds);
+          
           setDescription(project.description);
           setModelConfig(project.modelConfig || null);
           setContributors(project.contributors.map((c) => c._id));
-        }
-
-        if (fetchedCategories.isSuccess && fetchedCategories.data) {
-          setCategories(fetchedCategories.data);
+          setTags(project.tags || []);
+          setStatus(project.status || 'Draft');
+          
+          // Set media files (create minimal MediaFile objects for display)
+          if (project.thumbnail) {
+            setThumbnail({
+              _id: 'thumbnail-' + project._id,
+              filename: project.thumbnail.split('/').pop() || 'thumbnail',
+              filepath: project.thumbnail,
+              mimetype: 'image/jpeg',
+              size: 0,
+              uploadedBy: { 
+                _id: '', 
+                username: '', 
+                email: '', 
+                role: 'USER' as const,
+                name: '',
+                surname: '',
+                avatar: '',
+                bookmarks: { projects: [], articles: [] },
+                createdAt: '',
+                updatedAt: ''
+              },
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt
+            } as MediaFile);
+          }
+          
+          if (project.gallery && project.gallery.length > 0) {
+            const galleryFiles = project.gallery.map((path, index) => ({
+              _id: 'gallery-' + project._id + '-' + index,
+              filename: path.split('/').pop() || 'gallery-image',
+              filepath: path,
+              mimetype: 'image/jpeg',
+              size: 0,
+              uploadedBy: { 
+                _id: '', 
+                username: '', 
+                email: '', 
+                role: 'USER' as const,
+                name: '',
+                surname: '',
+                avatar: '',
+                bookmarks: { projects: [], articles: [] },
+                createdAt: '',
+                updatedAt: ''
+              },
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt
+            } as MediaFile));
+            setGallery(galleryFiles);
+          }
+          
+          if (project.modelUrl) {
+            setModel({
+              _id: 'model-' + project._id,
+              filename: project.modelUrl.split('/').pop() || 'model',
+              filepath: project.modelUrl,
+              mimetype: 'model/gltf-binary',
+              size: 0,
+              uploadedBy: { 
+                _id: '', 
+                username: '', 
+                email: '', 
+                role: 'USER' as const,
+                name: '',
+                surname: '',
+                avatar: '',
+                bookmarks: { projects: [], articles: [] },
+                createdAt: '',
+                updatedAt: ''
+              },
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt
+            } as MediaFile);
+          }
         }
 
         if (fetchedUsers.isSuccess && fetchedUsers.data) {
@@ -107,15 +215,36 @@ export default function EditProjectPage() {
     setLoading(true);
     setError(null);
 
+    // Validation
+    if (!title.trim()) {
+      setError("Project title is required");
+      setLoading(false);
+      return;
+    }
+
+    if (categories.length === 0) {
+      setError("Please select at least one category");
+      setLoading(false);
+      return;
+    }
+
+    if (!description.trim()) {
+      setError("Project description is required");
+      setLoading(false);
+      return;
+    }
+
     const projectData: UpdateProjectDto = {
       title,
-      category,
+      categories,
       description,
       thumbnail: thumbnail?.filepath,
       gallery: gallery.map((item) => item.filepath),
       modelUrl: model?.filepath,
       modelConfig: modelConfig!,
       contributors,
+      tags,
+      status,
     };
 
     try {
@@ -167,32 +296,69 @@ export default function EditProjectPage() {
           <TextField
             label="Project Title"
             fullWidth
+            required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             sx={{ mb: 2 }}
+            error={!title.trim() && title.length > 0}
+            helperText={
+              !title.trim() && title.length > 0 ? "Title is required" : ""
+            }
           />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <MenuItem key={cat._id} value={cat._id}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          
+          {/* Categories Autocomplete */}
+          <Box sx={{ mb: 2 }}>
+            <CategoryAutocomplete
+              value={categories}
+              onChange={setCategories}
+              multiple={true}
+              label="Categories *"
+              placeholder="Search and select categories..."
+              error={categories.length === 0}
+              helperText={categories.length === 0 ? "At least one category is required" : `${categories.length} categories selected`}
+            />
+          </Box>
+
           <TextField
             label="Description"
             fullWidth
+            required
             multiline
             rows={4}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             sx={{ mb: 2 }}
+            error={!description.trim() && description.length > 0}
+            helperText={
+              !description.trim() && description.length > 0
+                ? "Description is required"
+                : ""
+            }
           />
+
+          {/* Tags Input */}
+          <Box sx={{ mb: 2 }}>
+            <TagsInput
+              value={tags}
+              onChange={setTags}
+              label="Tags"
+              placeholder="Enter tags and press Enter..."
+              maxTags={10}
+            />
+          </Box>
+
+          {/* Status Selection */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as 'Draft' | 'Published')}
+              label="Status"
+            >
+              <MenuItem value="Draft">Draft</MenuItem>
+              <MenuItem value="Published">Published</MenuItem>
+            </Select>
+          </FormControl>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Contributors</InputLabel>
             <Select
@@ -267,8 +433,19 @@ export default function EditProjectPage() {
               </Typography>
               <ModelViewer
                 modelUrl={model.filepath}
-                initialConfig={modelConfig}
-                onSave={setModelConfig}
+                initialConfig={{
+                  ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
+                  directionalIntensity: modelConfig?.lighting?.directional ?? 1,
+                  lightColor: modelConfig?.lighting?.color ?? '#ffffff',
+                  scale: Array.isArray(modelConfig?.scale) ? modelConfig.scale[0] ?? 1 : (typeof modelConfig?.scale === 'number' ? modelConfig.scale : 1),
+                  rotation: modelConfig?.rotation ?? [0, 0, 0],
+                  position: modelConfig?.position ?? [0, 0, 0],
+                  backgroundColor: modelConfig?.backgroundColor ?? '#f0f0f0',
+                  materialMode: modelConfig?.materialMode ?? 'solid',
+                  shadows: modelConfig?.shadows ?? true,
+                  cameraMode: modelConfig?.cameraMode ?? 'perspective'
+                }}
+                onSave={handleModelConfigChange}
                 isAdmin
               />
             </Box>

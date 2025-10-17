@@ -5,7 +5,6 @@ import { Box, Button, Container, Typography, Card, CardMedia, CircularProgress, 
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import ModelViewer from '@/components/Three/ModelViewer';
-import { useSession } from 'next-auth/react';
 import { projectsApi } from '@/components/api';
 import { Project } from '@/types';
 
@@ -16,7 +15,6 @@ export default function ProjectDetailPage() {
   const [showModelViewer, setShowModelViewer] = useState(false);
   const params = useParams();
   const projectId = params.id as string;
-  const { data: session } = useSession();
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -117,9 +115,21 @@ export default function ProjectDetailPage() {
         <Box sx={{ mt: 4 }}>
           <ModelViewer
             modelUrl={project.modelUrl}
-            initialConfig={project.modelConfig}
+            initialConfig={{
+              ambientIntensity: project.modelConfig?.lighting?.ambient ?? 0.5,
+              directionalIntensity: project.modelConfig?.lighting?.directional ?? 1,
+              lightColor: project.modelConfig?.lighting?.color ?? '#ffffff',
+              scale: Array.isArray(project.modelConfig?.scale) ? project.modelConfig.scale[0] ?? 1 : (typeof project.modelConfig?.scale === 'number' ? project.modelConfig.scale : 1),
+              rotation: project.modelConfig?.rotation ?? [0, 0, 0],
+              position: project.modelConfig?.position ?? [0, 0, 0],
+              backgroundColor: project.modelConfig?.backgroundColor ?? '#f0f0f0',
+              materialMode: project.modelConfig?.materialMode ?? 'solid',
+              shadows: project.modelConfig?.shadows ?? true,
+              cameraMode: project.modelConfig?.cameraMode ?? 'perspective'
+            }}
             onSave={() => {}} // Empty function for view-only mode
-            isAdmin={session?.user?.role === 'ADMIN'}
+            isAdmin={false} // Always false for public view
+            showToolbar={true} // Show minimal toolbar
           />
         </Box>
       )}

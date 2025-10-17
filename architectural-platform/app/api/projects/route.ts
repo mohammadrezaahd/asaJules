@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 // Define the query type for better type safety
 interface ProjectQuery {
   status?: 'Draft' | 'Published';
-  category?: string | mongoose.Types.ObjectId;
+  categories?: string | mongoose.Types.ObjectId | { $in: (string | mongoose.Types.ObjectId)[] };
   tags?: { $in: string[] };
 }
 
@@ -22,9 +22,9 @@ export async function GET(req: Request) {
 
   const query: ProjectQuery = { status: 'Published' };
   
-  // Only add category to query if it's provided and not empty
+  // Only add categories to query if it's provided and not empty
   if (category && category.trim() !== '') {
-    query.category = category;
+    query.categories = category;
   }
   
   // Only add tags to query if tags array exists and has content
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
 
   try {
     const projects = await Project.find(query)
-      .populate('category')
+      .populate('categories')
       .populate('thumbnail')
       .skip((page - 1) * limit)
       .limit(limit)
@@ -84,11 +84,15 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
     
-    // Validate category if provided
-    if (body.category && body.category.trim() !== '' && !mongoose.Types.ObjectId.isValid(body.category)) {
-      return NextResponse.json({ 
-        message: 'Invalid category ID format' 
-      }, { status: 400 });
+    // Validate categories if provided
+    if (body.categories && Array.isArray(body.categories)) {
+      for (const categoryId of body.categories) {
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+          return NextResponse.json({ 
+            message: 'Invalid category ID format' 
+          }, { status: 400 });
+        }
+      }
     }
     
     // Validate contributors if provided
@@ -109,42 +113,41 @@ export async function POST(req: Request) {
       thumbnail: body.thumbnail,
       modelUrl: body.modelUrl,
       gallery: body.gallery || [],
+      categories: body.categories || [],
       tags: body.tags || [],
       contributors: body.contributors || [],
-      status: 'Published' as const // Default status
+      status: body.status || 'Draft' as const
     };
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const projectData: any = { ...baseData };
     
-    // Add category if valid ObjectId is provided
-    if (body.category && body.category.trim() !== '' && mongoose.Types.ObjectId.isValid(body.category)) {
-      projectData.category = body.category;
-    }
-    
     // Handle modelConfig if provided
     if (body.modelConfig) {
-      projectData.modelConfig = {};
+      projectData.modelConfig = {
+        // Direct mapping of all properties
+        ambientIntensity: body.modelConfig.ambientIntensity || 0.5,
+        directionalIntensity: body.modelConfig.directionalIntensity || 1,
+        lightColor: body.modelConfig.lightColor || '#ffffff',
+        scale: body.modelConfig.scale || 1,
+        rotation: body.modelConfig.rotation || [0, 0, 0],
+        position: body.modelConfig.position || [0, 0, 0],
+        backgroundColor: body.modelConfig.backgroundColor || '#f0f0f0',
+        materialMode: body.modelConfig.materialMode || 'solid',
+        shadows: body.modelConfig.shadows !== undefined ? body.modelConfig.shadows : true,
+        cameraMode: body.modelConfig.cameraMode || 'perspective',
+      };
       
-      // Map the frontend modelConfig to backend format
-      if (body.modelConfig.position && Array.isArray(body.modelConfig.position)) {
-        projectData.modelConfig.position = body.modelConfig.position;
-      }
-      
-      if (body.modelConfig.rotation && Array.isArray(body.modelConfig.rotation)) {
-        projectData.modelConfig.rotation = body.modelConfig.rotation;
-      }
-      
-      // Handle scale - frontend sends array but backend expects number
-      if (body.modelConfig.scale && Array.isArray(body.modelConfig.scale)) {
-        projectData.modelConfig.scale = body.modelConfig.scale[0] || 1;
-      }
-      
-      // Handle lighting object
+      // Handle legacy format if still exists
       if (body.modelConfig.lighting) {
         projectData.modelConfig.ambientIntensity = body.modelConfig.lighting.ambient || 0.5;
         projectData.modelConfig.directionalIntensity = body.modelConfig.lighting.directional || 1;
         projectData.modelConfig.lightColor = body.modelConfig.lighting.color || '#ffffff';
+      }
+      
+      // Handle scale - convert array to number if needed
+      if (Array.isArray(body.modelConfig.scale)) {
+        projectData.modelConfig.scale = body.modelConfig.scale[0] || 1;
       }
     }
     

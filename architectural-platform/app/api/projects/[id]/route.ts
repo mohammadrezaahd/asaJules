@@ -12,7 +12,7 @@ export async function GET(
 
   try {
     const project = await Project.findById(params.id)
-      .populate("category")
+      .populate("categories")
       .populate("contributors");
 
     if (!project) {
@@ -46,7 +46,38 @@ export async function PUT(
 
   try {
     const body = await req.json();
-    const updatedProject = await Project.findByIdAndUpdate(params.id, body, {
+    
+    // Process modelConfig if provided
+    const updateData = { ...body };
+    if (body.modelConfig) {
+      updateData.modelConfig = {
+        // Direct mapping of all properties
+        ambientIntensity: body.modelConfig.ambientIntensity || 0.5,
+        directionalIntensity: body.modelConfig.directionalIntensity || 1,
+        lightColor: body.modelConfig.lightColor || '#ffffff',
+        scale: body.modelConfig.scale || 1,
+        rotation: body.modelConfig.rotation || [0, 0, 0],
+        position: body.modelConfig.position || [0, 0, 0],
+        backgroundColor: body.modelConfig.backgroundColor || '#f0f0f0',
+        materialMode: body.modelConfig.materialMode || 'solid',
+        shadows: body.modelConfig.shadows !== undefined ? body.modelConfig.shadows : true,
+        cameraMode: body.modelConfig.cameraMode || 'perspective',
+      };
+      
+      // Handle legacy format if still exists
+      if (body.modelConfig.lighting) {
+        updateData.modelConfig.ambientIntensity = body.modelConfig.lighting.ambient || 0.5;
+        updateData.modelConfig.directionalIntensity = body.modelConfig.lighting.directional || 1;
+        updateData.modelConfig.lightColor = body.modelConfig.lighting.color || '#ffffff';
+      }
+      
+      // Handle scale - convert array to number if needed
+      if (Array.isArray(body.modelConfig.scale)) {
+        updateData.modelConfig.scale = body.modelConfig.scale[0] || 1;
+      }
+    }
+    
+    const updatedProject = await Project.findByIdAndUpdate(params.id, updateData, {
       new: true,
     });
 

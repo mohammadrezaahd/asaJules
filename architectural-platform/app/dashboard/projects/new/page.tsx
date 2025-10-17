@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
@@ -15,23 +15,26 @@ import {
   Chip,
 } from "@mui/material";
 import MediaManager from "@/components/MediaManager/MediaManager";
+import CategoryAutocomplete from "@/components/Categories/CategoryAutocomplete";
+import TagsInput from "@/components/Common/TagsInput";
 import { useRouter } from "next/navigation";
-import { projectsApi, categoriesApi, usersApi } from "@/components/api";
+import { projectsApi, usersApi } from "@/components/api";
 import ModelViewer from "@/components/Three/ModelViewer";
-import { Category, User, MediaFile, ModelConfig } from "@/types";
+import { User, MediaFile, ModelConfig } from "@/types";
 import { CreateProjectDto } from "@/types/dto/project.dto";
 
 export default function NewProjectPage() {
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState<MediaFile | null>(null);
   const [gallery, setGallery] = useState<MediaFile[]>([]);
   const [model, setModel] = useState<MediaFile | null>(null);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [status, setStatus] = useState<'Draft' | 'Published'>('Draft');
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -47,14 +50,7 @@ export default function NewProjectPage() {
     const fetchData = async () => {
       setDataLoading(true);
       try {
-        const [fetchedCategories, fetchedUsers] = await Promise.all([
-          categoriesApi.getAll(),
-          usersApi.getAll(),
-        ]);
-
-        if (fetchedCategories.isSuccess && fetchedCategories.data) {
-          setCategories(fetchedCategories.data);
-        }
+        const fetchedUsers = await usersApi.getAll();
 
         if (fetchedUsers.isSuccess && fetchedUsers.data) {
           setUsers(fetchedUsers.data);
@@ -71,19 +67,41 @@ export default function NewProjectPage() {
     fetchData();
   }, []);
 
+  const handleModelConfigChange = useCallback((config: {
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+    scale?: number;
+    rotation?: [number, number, number];
+    position?: [number, number, number];
+    backgroundColor?: string;
+    materialMode?: 'solid' | 'wireframe';
+    shadows?: boolean;
+    cameraMode?: 'perspective' | 'orthographic';
+  }) => {
+    console.log('New project - ModelConfig changing:', config);
+    setModelConfig({
+      position: config.position || [0, 0, 0],
+      rotation: config.rotation || [0, 0, 0],
+      scale: [config.scale || 1, config.scale || 1, config.scale || 1],
+      lighting: {
+        ambient: config.ambientIntensity || 0.5,
+        directional: config.directionalIntensity || 1,
+        color: config.lightColor || '#ffffff',
+      },
+      materialMode: config.materialMode || 'solid',
+      backgroundColor: config.backgroundColor || '#f0f0f0',
+      shadows: config.shadows ?? true,
+      cameraMode: config.cameraMode || 'perspective',
+    });
+  }, []);
+
   const retryFetchData = () => {
     setDataError(null);
     setDataLoading(true);
     const fetchData = async () => {
       try {
-        const [fetchedCategories, fetchedUsers] = await Promise.all([
-          categoriesApi.getAll(),
-          usersApi.getAll(),
-        ]);
-
-        if (fetchedCategories.isSuccess && fetchedCategories.data) {
-          setCategories(fetchedCategories.data);
-        }
+        const fetchedUsers = await usersApi.getAll();
 
         if (fetchedUsers.isSuccess && fetchedUsers.data) {
           setUsers(fetchedUsers.data);
@@ -129,8 +147,8 @@ export default function NewProjectPage() {
       return;
     }
 
-    if (!category && categories.length > 0) {
-      setError("Please select a category");
+    if (categories.length === 0) {
+      setError("Please select at least one category");
       setLoading(false);
       return;
     }
@@ -143,7 +161,7 @@ export default function NewProjectPage() {
 
     const projectData: CreateProjectDto = {
       title,
-      category: category || "",
+      categories,
       description,
       thumbnail: thumbnail?.filepath || "",
       gallery: gallery.map((item) => item.filepath),
@@ -159,6 +177,8 @@ export default function NewProjectPage() {
         },
       },
       contributors,
+      tags,
+      status,
     };
 
     try {
@@ -210,13 +230,6 @@ export default function NewProjectPage() {
         </Alert>
       )}
 
-      {categories.length === 0 && !dataLoading && !dataError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          No categories available. Some API endpoints may not be working
-          properly.
-        </Alert>
-      )}
-
       {users.length === 0 && !dataLoading && !dataError && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           No users available for contributors. User API may not be working
@@ -228,7 +241,7 @@ export default function NewProjectPage() {
         <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
           <CircularProgress />
           <Typography sx={{ ml: 2 }}>
-            Loading categories and users...
+            Loading users...
           </Typography>
         </Box>
       ) : (
@@ -245,27 +258,19 @@ export default function NewProjectPage() {
               !title.trim() && title.length > 0 ? "Title is required" : ""
             }
           />
-          <FormControl fullWidth sx={{ mb: 2 }} required>
-            <InputLabel>Category *</InputLabel>
-            <Select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              disabled={categories.length === 0}
-              error={!category && categories.length > 0}
-            >
-              {categories.length === 0 ? (
-                <MenuItem value="" disabled>
-                  No categories available
-                </MenuItem>
-              ) : (
-                categories.map((cat) => (
-                  <MenuItem key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-          </FormControl>
+          
+          <Box sx={{ mb: 2 }}>
+            <CategoryAutocomplete
+              value={categories}
+              onChange={setCategories}
+              multiple={true}
+              label="Categories *"
+              placeholder="Search and select categories..."
+              error={categories.length === 0}
+              helperText={categories.length === 0 ? "At least one category is required" : `${categories.length} categories selected`}
+            />
+          </Box>
+
           <TextField
             label="Description"
             fullWidth
@@ -282,6 +287,29 @@ export default function NewProjectPage() {
                 : ""
             }
           />
+
+          <Box sx={{ mb: 2 }}>
+            <TagsInput
+              value={tags}
+              onChange={setTags}
+              label="Tags"
+              placeholder="Enter tags and press Enter..."
+              maxTags={10}
+            />
+          </Box>
+
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as 'Draft' | 'Published')}
+              label="Status"
+            >
+              <MenuItem value="Draft">Draft</MenuItem>
+              <MenuItem value="Published">Published</MenuItem>
+            </Select>
+          </FormControl>
+
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Contributors</InputLabel>
             <Select
@@ -316,6 +344,7 @@ export default function NewProjectPage() {
               )}
             </Select>
           </FormControl>
+
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
@@ -329,6 +358,7 @@ export default function NewProjectPage() {
               </Typography>
             )}
           </Box>
+
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
@@ -346,6 +376,7 @@ export default function NewProjectPage() {
               </Box>
             )}
           </Box>
+
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
@@ -359,6 +390,7 @@ export default function NewProjectPage() {
               </Typography>
             )}
           </Box>
+
           {model && (
             <Box sx={{ my: 4 }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
@@ -366,12 +398,24 @@ export default function NewProjectPage() {
               </Typography>
               <ModelViewer
                 modelUrl={model.filepath}
-                initialConfig={modelConfig}
-                onSave={setModelConfig}
+                initialConfig={{
+                  ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
+                  directionalIntensity: modelConfig?.lighting?.directional ?? 1,
+                  lightColor: modelConfig?.lighting?.color ?? '#ffffff',
+                  scale: Array.isArray(modelConfig?.scale) ? modelConfig.scale[0] ?? 1 : (typeof modelConfig?.scale === 'number' ? modelConfig.scale : 1),
+                  rotation: modelConfig?.rotation ?? [0, 0, 0],
+                  position: modelConfig?.position ?? [0, 0, 0],
+                  backgroundColor: modelConfig?.backgroundColor ?? '#f0f0f0',
+                  materialMode: modelConfig?.materialMode ?? 'solid',
+                  shadows: modelConfig?.shadows ?? true,
+                  cameraMode: modelConfig?.cameraMode ?? 'perspective'
+                }}
+                onSave={handleModelConfigChange}
                 isAdmin
               />
             </Box>
           )}
+
           <Button
             type="submit"
             variant="contained"
@@ -391,6 +435,7 @@ export default function NewProjectPage() {
               "Create Project"
             )}
           </Button>
+
           <MediaManager
             open={mediaManagerOpen}
             onClose={() => setMediaManagerOpen(false)}

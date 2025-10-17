@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProject extends Document {
   title: string;
-  category?: mongoose.Schema.Types.ObjectId;
+  categories?: mongoose.Schema.Types.ObjectId[]; // Changed to array
   description: string;
   thumbnail: string; // String for URL
   gallery?: string[]; // String array for URLs  
@@ -28,7 +28,7 @@ export interface IProject extends Document {
 const ProjectSchema: Schema = new Schema(
   {
     title: { type: String, required: true },
-    category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }, // Remove required
+    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }], // Changed to array
     description: { type: String, required: true },
     thumbnail: { type: String, required: true }, // Changed to String for URL
     gallery: [{ type: String }], // Changed to String array for URLs

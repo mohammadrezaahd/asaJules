@@ -3,13 +3,15 @@ import { UserSummary } from './user.interfaces';
 export interface Project {
   _id: string;
   title: string;
-  category: string;
+  categories: string[];
   description: string;
   thumbnail: string;
   gallery: string[];
   modelUrl: string;
   modelConfig: ModelConfig;
   contributors: UserSummary[];
+  tags: string[];
+  status: 'Draft' | 'Published';
   createdAt: string;
   updatedAt: string;
 }
@@ -23,4 +25,8 @@ export interface ModelConfig {
     directional: number;
     color: string;
   };
+  materialMode?: 'solid' | 'wireframe';
+  backgroundColor?: string;
+  shadows?: boolean;
+  cameraMode?: 'perspective' | 'orthographic';
 }
