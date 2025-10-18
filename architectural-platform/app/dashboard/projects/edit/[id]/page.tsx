@@ -19,7 +19,7 @@ import CategoryAutocomplete from "@/components/Categories/CategoryAutocomplete";
 import TagsInput from "@/components/Common/TagsInput";
 import { useParams, useRouter } from "next/navigation";
 import { projectsApi, usersApi } from "@/components/api";
-import ModelViewer from "@/components/Three/ModelViewer";
+import ExampleApp from "@/components/Three/Example/App";
 import { User, MediaFile, ModelConfig } from "@/types";
 import { UpdateProjectDto } from "@/types/dto/project.dto";
 
@@ -34,7 +34,7 @@ export default function EditProjectPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [status, setStatus] = useState<'Draft' | 'Published'>('Draft');
+  const [status, setStatus] = useState<"Draft" | "Published">("Draft");
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -46,131 +46,137 @@ export default function EditProjectPage() {
   const projectId = params.id as string;
   const router = useRouter();
 
-  const handleModelConfigChange = useCallback((config: {
-    ambientIntensity?: number;
-    directionalIntensity?: number;
-    lightColor?: string;
-    scale?: number;
-    rotation?: [number, number, number];
-    position?: [number, number, number];
-    backgroundColor?: string;
-    materialMode?: 'solid' | 'wireframe';
-    shadows?: boolean;
-    cameraMode?: 'perspective' | 'orthographic';
-  }) => {
-    setModelConfig({
-      position: config.position || [0, 0, 0],
-      rotation: config.rotation || [0, 0, 0],
-      scale: [config.scale || 1, config.scale || 1, config.scale || 1],
-      lighting: {
-        ambient: config.ambientIntensity || 0.5,
-        directional: config.directionalIntensity || 1,
-        color: config.lightColor || '#ffffff',
-      },
-      materialMode: config.materialMode || 'solid',
-      backgroundColor: config.backgroundColor || '#f0f0f0',
-      shadows: config.shadows ?? true,
-      cameraMode: config.cameraMode || 'perspective',
-    });
-  }, []);
+  const handleModelConfigChange = useCallback(
+    (config: {
+      ambientIntensity?: number;
+      directionalIntensity?: number;
+      lightColor?: string;
+      scale?: number;
+      rotation?: [number, number, number];
+      position?: [number, number, number];
+      backgroundColor?: string;
+      materialMode?: "solid" | "wireframe";
+      shadows?: boolean;
+      cameraMode?: "perspective" | "orthographic";
+    }) => {
+      setModelConfig({
+        position: config.position || [0, 0, 0],
+        rotation: config.rotation || [0, 0, 0],
+        scale: [config.scale || 1, config.scale || 1, config.scale || 1],
+        lighting: {
+          ambient: config.ambientIntensity || 0.5,
+          directional: config.directionalIntensity || 1,
+          color: config.lightColor || "#ffffff",
+        },
+        materialMode: config.materialMode || "solid",
+        backgroundColor: config.backgroundColor || "#f0f0f0",
+        shadows: config.shadows ?? true,
+        cameraMode: config.cameraMode || "perspective",
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       setFetchLoading(true);
       try {
-        const [fetchedProject, fetchedUsers] =
-          await Promise.all([
-            projectsApi.getById(projectId),
-            usersApi.getAll(),
-          ]);
+        const [fetchedProject, fetchedUsers] = await Promise.all([
+          projectsApi.getById(projectId),
+          usersApi.getAll(),
+        ]);
 
         if (fetchedProject.isSuccess && fetchedProject.data) {
           const project = fetchedProject.data;
           setTitle(project.title);
-          
+
           // Handle categories - they might be populated objects or just IDs
-          const categoryIds = project.categories?.map((cat: string | { _id: string }) => 
-            typeof cat === 'string' ? cat : cat._id
-          ) || [];
+          const categoryIds =
+            project.categories?.map((cat: string | { _id: string }) =>
+              typeof cat === "string" ? cat : cat._id
+            ) || [];
           setCategories(categoryIds);
-          
+
           setDescription(project.description);
           setModelConfig(project.modelConfig || null);
           setContributors(project.contributors.map((c) => c._id));
           setTags(project.tags || []);
-          setStatus(project.status || 'Draft');
-          
+          setStatus(project.status || "Draft");
+
           // Set media files (create minimal MediaFile objects for display)
           if (project.thumbnail) {
             setThumbnail({
-              _id: 'thumbnail-' + project._id,
-              filename: project.thumbnail.split('/').pop() || 'thumbnail',
+              _id: "thumbnail-" + project._id,
+              filename: project.thumbnail.split("/").pop() || "thumbnail",
               filepath: project.thumbnail,
-              mimetype: 'image/jpeg',
+              mimetype: "image/jpeg",
               size: 0,
-              uploadedBy: { 
-                _id: '', 
-                username: '', 
-                email: '', 
-                role: 'USER' as const,
-                name: '',
-                surname: '',
-                avatar: '',
+              uploadedBy: {
+                _id: "",
+                username: "",
+                email: "",
+                role: "USER" as const,
+                name: "",
+                surname: "",
+                avatar: "",
                 bookmarks: { projects: [], articles: [] },
-                createdAt: '',
-                updatedAt: ''
+                createdAt: "",
+                updatedAt: "",
               },
               createdAt: project.createdAt,
-              updatedAt: project.updatedAt
+              updatedAt: project.updatedAt,
             } as MediaFile);
           }
-          
+
           if (project.gallery && project.gallery.length > 0) {
-            const galleryFiles = project.gallery.map((path, index) => ({
-              _id: 'gallery-' + project._id + '-' + index,
-              filename: path.split('/').pop() || 'gallery-image',
-              filepath: path,
-              mimetype: 'image/jpeg',
-              size: 0,
-              uploadedBy: { 
-                _id: '', 
-                username: '', 
-                email: '', 
-                role: 'USER' as const,
-                name: '',
-                surname: '',
-                avatar: '',
-                bookmarks: { projects: [], articles: [] },
-                createdAt: '',
-                updatedAt: ''
-              },
-              createdAt: project.createdAt,
-              updatedAt: project.updatedAt
-            } as MediaFile));
+            const galleryFiles = project.gallery.map(
+              (path, index) =>
+                ({
+                  _id: "gallery-" + project._id + "-" + index,
+                  filename: path.split("/").pop() || "gallery-image",
+                  filepath: path,
+                  mimetype: "image/jpeg",
+                  size: 0,
+                  uploadedBy: {
+                    _id: "",
+                    username: "",
+                    email: "",
+                    role: "USER" as const,
+                    name: "",
+                    surname: "",
+                    avatar: "",
+                    bookmarks: { projects: [], articles: [] },
+                    createdAt: "",
+                    updatedAt: "",
+                  },
+                  createdAt: project.createdAt,
+                  updatedAt: project.updatedAt,
+                } as MediaFile)
+            );
             setGallery(galleryFiles);
           }
-          
+
           if (project.modelUrl) {
             setModel({
-              _id: 'model-' + project._id,
-              filename: project.modelUrl.split('/').pop() || 'model',
+              _id: "model-" + project._id,
+              filename: project.modelUrl.split("/").pop() || "model",
               filepath: project.modelUrl,
-              mimetype: 'model/gltf-binary',
+              mimetype: "model/gltf-binary",
               size: 0,
-              uploadedBy: { 
-                _id: '', 
-                username: '', 
-                email: '', 
-                role: 'USER' as const,
-                name: '',
-                surname: '',
-                avatar: '',
+              uploadedBy: {
+                _id: "",
+                username: "",
+                email: "",
+                role: "USER" as const,
+                name: "",
+                surname: "",
+                avatar: "",
                 bookmarks: { projects: [], articles: [] },
-                createdAt: '',
-                updatedAt: ''
+                createdAt: "",
+                updatedAt: "",
               },
               createdAt: project.createdAt,
-              updatedAt: project.updatedAt
+              updatedAt: project.updatedAt,
             } as MediaFile);
           }
         }
@@ -305,7 +311,7 @@ export default function EditProjectPage() {
               !title.trim() && title.length > 0 ? "Title is required" : ""
             }
           />
-          
+
           {/* Categories Autocomplete */}
           <Box sx={{ mb: 2 }}>
             <CategoryAutocomplete
@@ -315,7 +321,11 @@ export default function EditProjectPage() {
               label="Categories *"
               placeholder="Search and select categories..."
               error={categories.length === 0}
-              helperText={categories.length === 0 ? "At least one category is required" : `${categories.length} categories selected`}
+              helperText={
+                categories.length === 0
+                  ? "At least one category is required"
+                  : `${categories.length} categories selected`
+              }
             />
           </Box>
 
@@ -352,7 +362,9 @@ export default function EditProjectPage() {
             <InputLabel>Status</InputLabel>
             <Select
               value={status}
-              onChange={(e) => setStatus(e.target.value as 'Draft' | 'Published')}
+              onChange={(e) =>
+                setStatus(e.target.value as "Draft" | "Published")
+              }
               label="Status"
             >
               <MenuItem value="Draft">Draft</MenuItem>
@@ -431,23 +443,33 @@ export default function EditProjectPage() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 3D Model Preview
               </Typography>
-              <ModelViewer
-                modelUrl={model.filepath}
-                initialConfig={{
-                  ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
-                  directionalIntensity: modelConfig?.lighting?.directional ?? 1,
-                  lightColor: modelConfig?.lighting?.color ?? '#ffffff',
-                  scale: Array.isArray(modelConfig?.scale) ? modelConfig.scale[0] ?? 1 : (typeof modelConfig?.scale === 'number' ? modelConfig.scale : 1),
-                  rotation: modelConfig?.rotation ?? [0, 0, 0],
-                  position: modelConfig?.position ?? [0, 0, 0],
-                  backgroundColor: modelConfig?.backgroundColor ?? '#f0f0f0',
-                  materialMode: modelConfig?.materialMode ?? 'solid',
-                  shadows: modelConfig?.shadows ?? true,
-                  cameraMode: modelConfig?.cameraMode ?? 'perspective'
-                }}
-                onSave={handleModelConfigChange}
-                isAdmin
-              />
+
+              {/* New ExampleApp Component */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  New 3D Viewer (with Position/Rotation/Scale Controls):
+                </Typography>
+                <ExampleApp
+                  modelUrl={model.filepath}
+                  initialConfig={{
+                    position: modelConfig?.position ?? [0, 0, 0],
+                    rotation: modelConfig?.rotation ?? [0, 0, 0],
+                    scale: Array.isArray(modelConfig?.scale)
+                      ? modelConfig.scale[0] ?? 1
+                      : 1,
+                    ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
+                    directionalIntensity:
+                      modelConfig?.lighting?.directional ?? 1,
+                    lightColor: modelConfig?.lighting?.color ?? "#ffffff",
+                    backgroundColor: modelConfig?.backgroundColor ?? "#f0f0f0",
+                    materialMode: modelConfig?.materialMode ?? "solid",
+                    shadows: modelConfig?.shadows ?? true,
+                    cameraMode: modelConfig?.cameraMode ?? "perspective",
+                  }}
+                  onConfigChange={handleModelConfigChange}
+                  isAdmin={true}
+                />
+              </Box>
             </Box>
           )}
           <Button
@@ -473,11 +495,12 @@ export default function EditProjectPage() {
             onSelect={handleSelectMedia}
             multiple={mediaManagerTarget === "gallery"}
             mediaType={
-              mediaManagerTarget === "model" 
-                ? "models" 
-                : mediaManagerTarget === "thumbnail" || mediaManagerTarget === "gallery" 
-                  ? "images" 
-                  : "all"
+              mediaManagerTarget === "model"
+                ? "models"
+                : mediaManagerTarget === "thumbnail" ||
+                  mediaManagerTarget === "gallery"
+                ? "images"
+                : "all"
             }
           />
         </>

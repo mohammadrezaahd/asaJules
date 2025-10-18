@@ -19,7 +19,7 @@ import CategoryAutocomplete from "@/components/Categories/CategoryAutocomplete";
 import TagsInput from "@/components/Common/TagsInput";
 import { useRouter } from "next/navigation";
 import { projectsApi, usersApi } from "@/components/api";
-import ModelViewer from "@/components/Three/ModelViewer";
+import ExampleApp from "@/components/Three/Example/App";
 import { User, MediaFile, ModelConfig } from "@/types";
 import { CreateProjectDto } from "@/types/dto/project.dto";
 
@@ -34,7 +34,7 @@ export default function NewProjectPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [status, setStatus] = useState<'Draft' | 'Published'>('Draft');
+  const [status, setStatus] = useState<"Draft" | "Published">("Draft");
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -67,33 +67,36 @@ export default function NewProjectPage() {
     fetchData();
   }, []);
 
-  const handleModelConfigChange = useCallback((config: {
-    ambientIntensity?: number;
-    directionalIntensity?: number;
-    lightColor?: string;
-    scale?: number;
-    rotation?: [number, number, number];
-    position?: [number, number, number];
-    backgroundColor?: string;
-    materialMode?: 'solid' | 'wireframe';
-    shadows?: boolean;
-    cameraMode?: 'perspective' | 'orthographic';
-  }) => {
-    setModelConfig({
-      position: config.position || [0, 0, 0],
-      rotation: config.rotation || [0, 0, 0],
-      scale: [config.scale || 1, config.scale || 1, config.scale || 1],
-      lighting: {
-        ambient: config.ambientIntensity || 0.5,
-        directional: config.directionalIntensity || 1,
-        color: config.lightColor || '#ffffff',
-      },
-      materialMode: config.materialMode || 'solid',
-      backgroundColor: config.backgroundColor || '#f0f0f0',
-      shadows: config.shadows ?? true,
-      cameraMode: config.cameraMode || 'perspective',
-    });
-  }, []);
+  const handleModelConfigChange = useCallback(
+    (config: {
+      ambientIntensity?: number;
+      directionalIntensity?: number;
+      lightColor?: string;
+      scale?: number;
+      rotation?: [number, number, number];
+      position?: [number, number, number];
+      backgroundColor?: string;
+      materialMode?: "solid" | "wireframe";
+      shadows?: boolean;
+      cameraMode?: "perspective" | "orthographic";
+    }) => {
+      setModelConfig({
+        position: config.position || [0, 0, 0],
+        rotation: config.rotation || [0, 0, 0],
+        scale: [config.scale || 1, config.scale || 1, config.scale || 1],
+        lighting: {
+          ambient: config.ambientIntensity || 0.5,
+          directional: config.directionalIntensity || 1,
+          color: config.lightColor || "#ffffff",
+        },
+        materialMode: config.materialMode || "solid",
+        backgroundColor: config.backgroundColor || "#f0f0f0",
+        shadows: config.shadows ?? true,
+        cameraMode: config.cameraMode || "perspective",
+      });
+    },
+    []
+  );
 
   const retryFetchData = () => {
     setDataError(null);
@@ -239,9 +242,7 @@ export default function NewProjectPage() {
       {dataLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
           <CircularProgress />
-          <Typography sx={{ ml: 2 }}>
-            Loading users...
-          </Typography>
+          <Typography sx={{ ml: 2 }}>Loading users...</Typography>
         </Box>
       ) : (
         <>
@@ -257,7 +258,7 @@ export default function NewProjectPage() {
               !title.trim() && title.length > 0 ? "Title is required" : ""
             }
           />
-          
+
           <Box sx={{ mb: 2 }}>
             <CategoryAutocomplete
               value={categories}
@@ -266,7 +267,11 @@ export default function NewProjectPage() {
               label="Categories *"
               placeholder="Search and select categories..."
               error={categories.length === 0}
-              helperText={categories.length === 0 ? "At least one category is required" : `${categories.length} categories selected`}
+              helperText={
+                categories.length === 0
+                  ? "At least one category is required"
+                  : `${categories.length} categories selected`
+              }
             />
           </Box>
 
@@ -301,7 +306,9 @@ export default function NewProjectPage() {
             <InputLabel>Status</InputLabel>
             <Select
               value={status}
-              onChange={(e) => setStatus(e.target.value as 'Draft' | 'Published')}
+              onChange={(e) =>
+                setStatus(e.target.value as "Draft" | "Published")
+              }
               label="Status"
             >
               <MenuItem value="Draft">Draft</MenuItem>
@@ -395,23 +402,33 @@ export default function NewProjectPage() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 3D Model Preview
               </Typography>
-              <ModelViewer
-                modelUrl={model.filepath}
-                initialConfig={{
-                  ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
-                  directionalIntensity: modelConfig?.lighting?.directional ?? 1,
-                  lightColor: modelConfig?.lighting?.color ?? '#ffffff',
-                  scale: Array.isArray(modelConfig?.scale) ? modelConfig.scale[0] ?? 1 : (typeof modelConfig?.scale === 'number' ? modelConfig.scale : 1),
-                  rotation: modelConfig?.rotation ?? [0, 0, 0],
-                  position: modelConfig?.position ?? [0, 0, 0],
-                  backgroundColor: modelConfig?.backgroundColor ?? '#f0f0f0',
-                  materialMode: modelConfig?.materialMode ?? 'solid',
-                  shadows: modelConfig?.shadows ?? true,
-                  cameraMode: modelConfig?.cameraMode ?? 'perspective'
-                }}
-                onSave={handleModelConfigChange}
-                isAdmin
-              />
+
+              {/* New ExampleApp Component */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  New 3D Viewer (with Position/Rotation/Scale Controls):
+                </Typography>
+                <ExampleApp
+                  modelUrl={model.filepath}
+                  initialConfig={{
+                    position: modelConfig?.position ?? [0, 0, 0],
+                    rotation: modelConfig?.rotation ?? [0, 0, 0],
+                    scale: Array.isArray(modelConfig?.scale)
+                      ? modelConfig.scale[0] ?? 1
+                      : 1,
+                    ambientIntensity: modelConfig?.lighting?.ambient ?? 0.5,
+                    directionalIntensity:
+                      modelConfig?.lighting?.directional ?? 1,
+                    lightColor: modelConfig?.lighting?.color ?? "#ffffff",
+                    backgroundColor: modelConfig?.backgroundColor ?? "#f0f0f0",
+                    materialMode: modelConfig?.materialMode ?? "solid",
+                    shadows: modelConfig?.shadows ?? true,
+                    cameraMode: modelConfig?.cameraMode ?? "perspective",
+                  }}
+                  onConfigChange={handleModelConfigChange}
+                  isAdmin={true}
+                />
+              </Box>
             </Box>
           )}
 
@@ -441,11 +458,12 @@ export default function NewProjectPage() {
             onSelect={handleSelectMedia}
             multiple={mediaManagerTarget === "gallery"}
             mediaType={
-              mediaManagerTarget === "model" 
-                ? "models" 
-                : mediaManagerTarget === "thumbnail" || mediaManagerTarget === "gallery" 
-                  ? "images" 
-                  : "all"
+              mediaManagerTarget === "model"
+                ? "models"
+                : mediaManagerTarget === "thumbnail" ||
+                  mediaManagerTarget === "gallery"
+                ? "images"
+                : "all"
             }
           />
         </>

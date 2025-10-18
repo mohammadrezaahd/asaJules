@@ -1,9 +1,15 @@
-import { a, useSpring } from "@react-spring/three";
 import { useThree } from "@react-three/fiber";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
-import { InspectorProps } from "./types";
+import { Controls } from "./types";
+
+interface InspectorProps {
+  responsiveness?: number;
+  children: React.ReactNode;
+  controls: Controls;
+  setControls: React.Dispatch<React.SetStateAction<Controls>>;
+}
 
 export default function Inspector({
   responsiveness = 20,
@@ -13,31 +19,37 @@ export default function Inspector({
 }: InspectorProps) {
   const { size } = useThree();
   const euler = useMemo(() => new THREE.Euler(), []);
+  const isDraggingRef = useRef(false);
 
-  const [spring, set] = useSpring(() => ({
-    position: controls.position,
-    rotation: controls.rotation,
-  }));
-
-  // Update spring when controls change from toolbar
+  // Use direct values instead of spring animation to avoid conflicts
   useEffect(() => {
-    set({
-      position: controls.position,
-      rotation: controls.rotation,
-    });
-    // Update euler to match controls
-    euler.fromArray(controls.rotation);
-  }, [controls, set, euler]);
+    if (!isDraggingRef.current) {
+      euler.fromArray(controls.rotation);
+    }
+  }, [controls.rotation, euler]);
 
-  const bind = useDrag(({ delta: [dx, dy], buttons }) => {
+  const bind = useDrag(({ 
+    delta: [dx, dy], 
+    buttons, 
+    first, 
+    last
+  }) => {
+    if (first) {
+      isDraggingRef.current = true;
+    }
+    
+    if (last) {
+      isDraggingRef.current = false;
+      return;
+    }
+    
     if (buttons === 2) {
       // Right mouse button - Position control
       const positionSensitivity = 0.01;
       const newPosition: [number, number, number] = [...controls.position];
       newPosition[0] += dx * positionSensitivity;
-      newPosition[1] -= dy * positionSensitivity; // Invert Y for natural feel
+      newPosition[1] -= dy * positionSensitivity;
 
-      set({ position: newPosition });
       setControls((prev) => ({
         ...prev,
         position: newPosition,
@@ -47,9 +59,9 @@ export default function Inspector({
       euler.y += (dx / size.width) * responsiveness;
       euler.x += (dy / size.width) * responsiveness;
       euler.x = THREE.MathUtils.clamp(euler.x, -Math.PI / 2, Math.PI / 2);
+      
       const newRotation: [number, number, number] = [euler.x, euler.y, euler.z];
-
-      set({ rotation: newRotation });
+      
       setControls((prev) => ({
         ...prev,
         rotation: newRotation,
@@ -57,13 +69,16 @@ export default function Inspector({
     }
   });
 
+
+
   return (
-    <a.group
+    <group
       {...bind()}
-      position={spring.position}
-      rotation={spring.rotation as unknown as [number, number, number]}
+      position={controls.position}
+      rotation={controls.rotation}
+      scale={[controls.scale, controls.scale, controls.scale]}
     >
       {children}
-    </a.group>
+    </group>
   );
 }

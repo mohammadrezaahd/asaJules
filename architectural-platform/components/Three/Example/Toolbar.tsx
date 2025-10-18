@@ -1,17 +1,44 @@
 import React from "react";
 
-// Define types for controls
-interface Controls {
-  position: [number, number, number];
-  rotation: [number, number, number];
-}
+import { Controls } from "./types";
 
 interface ToolbarProps {
   controls: Controls;
   setControls: React.Dispatch<React.SetStateAction<Controls>>;
+  lightingConfig?: {
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+  };
+  backgroundColor?: string;
+  materialMode?: 'solid' | 'wireframe';
+  shadows?: boolean;
+  cameraMode?: 'perspective' | 'orthographic';
+  onLightingChange?: (config: {
+    ambientIntensity: number;
+    directionalIntensity: number;
+    lightColor: string;
+  }) => void;
+  onBackgroundChange?: (color: string) => void;
+  onMaterialModeChange?: (mode: 'solid' | 'wireframe') => void;
+  onShadowsChange?: (enabled: boolean) => void;
+  onCameraModeChange?: (mode: 'perspective' | 'orthographic') => void;
 }
 
-export default function Toolbar({ controls, setControls }: ToolbarProps) {
+export default function Toolbar({ 
+  controls, 
+  setControls,
+  lightingConfig = { ambientIntensity: 0.5, directionalIntensity: 1, lightColor: '#ffffff' },
+  backgroundColor = '#f0f0f0',
+  materialMode = 'solid',
+  shadows = true,
+  cameraMode = 'perspective',
+  onLightingChange,
+  onBackgroundChange,
+  onMaterialModeChange,
+  onShadowsChange,
+  onCameraModeChange
+}: ToolbarProps) {
   const handlePositionChange = (axis: number, value: string) => {
     const newPosition: [number, number, number] = [...controls.position];
     newPosition[axis] = parseFloat(value);
@@ -30,6 +57,25 @@ export default function Toolbar({ controls, setControls }: ToolbarProps) {
     }));
   };
 
+  const handleScaleChange = (value: string) => {
+    const newScale = parseFloat(value);
+    setControls((prev) => ({
+      ...prev,
+      scale: newScale,
+    }));
+  };
+
+  const handleLightingChange = (property: 'ambientIntensity' | 'directionalIntensity' | 'lightColor', value: string | number) => {
+    if (onLightingChange) {
+      onLightingChange({
+        ambientIntensity: lightingConfig.ambientIntensity ?? 0.5,
+        directionalIntensity: lightingConfig.directionalIntensity ?? 1,
+        lightColor: lightingConfig.lightColor ?? '#ffffff',
+        [property]: value,
+      });
+    }
+  };
+
   const toolbarStyle: React.CSSProperties = {
     position: "absolute",
     top: "10px",
@@ -41,7 +87,9 @@ export default function Toolbar({ controls, setControls }: ToolbarProps) {
     fontFamily: "monospace",
     fontSize: "12px",
     zIndex: 1000,
-    minWidth: "250px",
+    minWidth: "280px",
+    maxHeight: "85vh",
+    overflowY: "auto",
   };
 
   const groupStyle: React.CSSProperties = {
@@ -127,9 +175,25 @@ export default function Toolbar({ controls, setControls }: ToolbarProps) {
         </div>
       </div>
 
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Scale</div>
+        <div>
+          <label>Scale: </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="10"
+            value={controls.scale.toFixed(1)}
+            onChange={(e) => handleScaleChange(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+      </div>
+
       <button
         onClick={() =>
-          setControls({ position: [0, 0, 0], rotation: [0, 0, 0] })
+          setControls({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1 })
         }
         style={{
           background: "rgba(255, 255, 255, 0.2)",
@@ -139,10 +203,136 @@ export default function Toolbar({ controls, setControls }: ToolbarProps) {
           padding: "5px 10px",
           cursor: "pointer",
           fontSize: "11px",
+          marginBottom: "10px",
         }}
       >
-        Reset
+        Reset Transform
       </button>
+
+      {/* Lighting Controls */}
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Lighting</div>
+        <div style={{ marginBottom: "8px" }}>
+          <label>Ambient: </label>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={lightingConfig.ambientIntensity}
+            onChange={(e) => handleLightingChange('ambientIntensity', parseFloat(e.target.value))}
+            style={{ width: "100px", marginRight: "8px" }}
+          />
+          <span style={{ fontSize: "10px" }}>{lightingConfig.ambientIntensity?.toFixed(1)}</span>
+        </div>
+        <div style={{ marginBottom: "8px" }}>
+          <label>Directional: </label>
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="0.1"
+            value={lightingConfig.directionalIntensity}
+            onChange={(e) => handleLightingChange('directionalIntensity', parseFloat(e.target.value))}
+            style={{ width: "100px", marginRight: "8px" }}
+          />
+          <span style={{ fontSize: "10px" }}>{lightingConfig.directionalIntensity?.toFixed(1)}</span>
+        </div>
+        <div>
+          <label>Color: </label>
+          <input
+            type="color"
+            value={lightingConfig.lightColor}
+            onChange={(e) => handleLightingChange('lightColor', e.target.value)}
+            style={{ width: "50px", height: "25px", border: "none", borderRadius: "3px" }}
+          />
+        </div>
+      </div>
+
+      {/* Background Color */}
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Background</div>
+        <div>
+          <label>Color: </label>
+          <input
+            type="color"
+            value={backgroundColor}
+            onChange={(e) => onBackgroundChange && onBackgroundChange(e.target.value)}
+            style={{ width: "50px", height: "25px", border: "none", borderRadius: "3px", marginRight: "8px" }}
+          />
+          <span style={{ fontSize: "10px" }}>{backgroundColor}</span>
+        </div>
+      </div>
+
+      {/* Material Mode */}
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Material</div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="materialMode"
+              checked={materialMode === 'solid'}
+              onChange={() => onMaterialModeChange && onMaterialModeChange('solid')}
+              style={{ marginRight: "5px" }}
+            />
+            Solid
+          </label>
+          <label style={{ marginLeft: "15px" }}>
+            <input
+              type="radio"
+              name="materialMode"
+              checked={materialMode === 'wireframe'}
+              onChange={() => onMaterialModeChange && onMaterialModeChange('wireframe')}
+              style={{ marginRight: "5px" }}
+            />
+            Wireframe
+          </label>
+        </div>
+      </div>
+
+      {/* Shadows */}
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Shadows</div>
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              checked={shadows}
+              onChange={(e) => onShadowsChange && onShadowsChange(e.target.checked)}
+              style={{ marginRight: "5px" }}
+            />
+            Enable Shadows
+          </label>
+        </div>
+      </div>
+
+      {/* Camera Mode */}
+      <div style={groupStyle}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Camera</div>
+        <div>
+          <label>
+            <input
+              type="radio"
+              name="cameraMode"
+              checked={cameraMode === 'perspective'}
+              onChange={() => onCameraModeChange && onCameraModeChange('perspective')}
+              style={{ marginRight: "5px" }}
+            />
+            Perspective
+          </label>
+          <label style={{ marginLeft: "15px" }}>
+            <input
+              type="radio"
+              name="cameraMode"
+              checked={cameraMode === 'orthographic'}
+              onChange={() => onCameraModeChange && onCameraModeChange('orthographic')}
+              style={{ marginRight: "5px" }}
+            />
+            Orthographic
+          </label>
+        </div>
+      </div>
     </div>
   );
 }
