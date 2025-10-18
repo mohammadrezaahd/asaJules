@@ -1,20 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import User from "@/models/User";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/db';
+import '@/lib/models'; // Import all models to register them
+import { User } from '@/lib/models';
 
-export async function GET(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || token.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  await dbConnect();
+export async function GET(req: Request) {
   try {
-    const users = await User.find({});
-    return NextResponse.json(users, { status: 200 });
+    await dbConnect();
+    console.log('Database connected successfully for users');
+    
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    
+    const users = await User.find({}, 'username')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    
+    const total = await User.countDocuments({});
+    console.log('Users fetched:', users.length);
+    
+    return NextResponse.json({ 
+      users,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('Error fetching users:', error);
+    return NextResponse.json({ 
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

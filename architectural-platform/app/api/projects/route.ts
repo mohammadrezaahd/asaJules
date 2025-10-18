@@ -1,38 +1,170 @@
-import { NextRequest, NextResponse } from "next/server";
-import dbConnect from "@/lib/db";
-import Project from "@/models/Project";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import dbConnect from '@/lib/db';
+import '@/lib/models'; // Import all models to register them
+import { Project } from '@/lib/models';
+import { authOptions } from '../auth/[...nextauth]/route';
+import mongoose from 'mongoose';
 
-export async function GET() {
+// Define the query type for better type safety
+interface ProjectQuery {
+  status?: 'Draft' | 'Published';
+  categories?: string | mongoose.Types.ObjectId | { $in: (string | mongoose.Types.ObjectId)[] };
+  tags?: { $in: string[] };
+}
+
+export async function GET(req: Request) {
   await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const category = searchParams.get('category');
+  const tags = searchParams.get('tags')?.split(',').filter(tag => tag.trim() !== '');
+
+  const query: ProjectQuery = { status: 'Published' };
+  
+  // Only add categories to query if it's provided and not empty
+  if (category && category.trim() !== '') {
+    query.categories = category;
+  }
+  
+  // Only add tags to query if tags array exists and has content
+  if (tags && tags.length > 0) {
+    query.tags = { $in: tags };
+  }
+
   try {
-    const projects = await Project.find({})
-      .populate("category")
-      .populate("createdBy");
-    return NextResponse.json(projects, { status: 200 });
+    const projects = await Project.find(query)
+      .populate('categories')
+      .populate('thumbnail')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const total = await Project.countDocuments(query);
+
+    return NextResponse.json({
+      projects,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('Error fetching projects:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
-  const token = await getToken({ req });
-  if (!token || token.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
   }
 
   await dbConnect();
+
   try {
     const body = await req.json();
-    const newProject = new Project({
-      ...body,
-      createdBy: token.id,
-    });
+    
+    // Validate required fields
+    if (!body.title || !body.description) {
+      return NextResponse.json({ 
+        message: 'Title and description are required' 
+      }, { status: 400 });
+    }
+    
+    if (!body.modelUrl) {
+      return NextResponse.json({ 
+        message: 'Model URL is required' 
+      }, { status: 400 });
+    }
+    
+    if (!body.thumbnail) {
+      return NextResponse.json({ 
+        message: 'Thumbnail URL is required' 
+      }, { status: 400 });
+    }
+    
+    // Validate categories if provided
+    if (body.categories && Array.isArray(body.categories)) {
+      for (const categoryId of body.categories) {
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+          return NextResponse.json({ 
+            message: 'Invalid category ID format' 
+          }, { status: 400 });
+        }
+      }
+    }
+    
+    // Validate contributors if provided
+    if (body.contributors && Array.isArray(body.contributors)) {
+      for (const contributor of body.contributors) {
+        if (!mongoose.Types.ObjectId.isValid(contributor)) {
+          return NextResponse.json({ 
+            message: 'Invalid contributor ID format' 
+          }, { status: 400 });
+        }
+      }
+    }
+    
+    // Prepare base data for the database model
+    const baseData = {
+      title: body.title,
+      description: body.description,
+      thumbnail: body.thumbnail,
+      modelUrl: body.modelUrl,
+      gallery: body.gallery || [],
+      categories: body.categories || [],
+      tags: body.tags || [],
+      contributors: body.contributors || [],
+      status: body.status || 'Draft' as const
+    };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const projectData: any = { ...baseData };
+    
+    // Handle modelConfig if provided
+    if (body.modelConfig) {
+      projectData.modelConfig = {
+        // Direct mapping of all properties
+        ambientIntensity: body.modelConfig.ambientIntensity || 0.5,
+        directionalIntensity: body.modelConfig.directionalIntensity || 1,
+        lightColor: body.modelConfig.lightColor || '#ffffff',
+        scale: body.modelConfig.scale || 1,
+        rotation: body.modelConfig.rotation || [0, 0, 0],
+        position: body.modelConfig.position || [0, 0, 0],
+        backgroundColor: body.modelConfig.backgroundColor || '#f0f0f0',
+        materialMode: body.modelConfig.materialMode || 'solid',
+        shadows: body.modelConfig.shadows !== undefined ? body.modelConfig.shadows : true,
+        cameraMode: body.modelConfig.cameraMode || 'perspective',
+      };
+      
+      // Handle legacy format if still exists
+      if (body.modelConfig.lighting) {
+        projectData.modelConfig.ambientIntensity = body.modelConfig.lighting.ambient || 0.5;
+        projectData.modelConfig.directionalIntensity = body.modelConfig.lighting.directional || 1;
+        projectData.modelConfig.lightColor = body.modelConfig.lighting.color || '#ffffff';
+      }
+      
+      // Handle scale - convert array to number if needed
+      if (Array.isArray(body.modelConfig.scale)) {
+        projectData.modelConfig.scale = body.modelConfig.scale[0] || 1;
+      }
+    }
+    
+    // Add the user who created the project
+    if (session.user.id) {
+      projectData.createdBy = session.user.id;
+    }
+    
+    const newProject = new Project(projectData);
     await newProject.save();
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error('Error creating project:', error);
+    return NextResponse.json({ 
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

@@ -1,56 +1,111 @@
-import NextAuth from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import dbConnect from '@/lib/db';
-import User from '@/models/User';
-import bcrypt from 'bcrypt';
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
+import { verifyPassword } from "@/lib/auth";
+import config from "@/lib/config";
+import { AuthOptions } from "next-auth";
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: config.auth.client_id || "",
+      clientSecret: config.auth.client_secret || "",
     }),
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (!credentials) {
+          return null;
+        }
         await dbConnect();
+        console.log("Authorizing user with email:", credentials);
         const user = await User.findOne({ email: credentials.email });
 
-        if (user && bcrypt.compareSync(credentials.password, user.password)) {
-          return user;
+        if (!user || !user.passwordHash) {
+          return null;
         }
-        return null;
+
+        const isValid = await verifyPassword(
+          credentials.password,
+          user.passwordHash
+        );
+        console.log("Password valid:", isValid);
+        if (!isValid) {
+          return null;
+        }
+
+        return {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+          avatarUrl: user.avatarUrl,
+          role: user.role,
+          provider: user.provider,
+        };
       },
     }),
   ],
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        await dbConnect();
+        let dbUser = await User.findOne({ email: user.email });
+        if (!dbUser) {
+          dbUser = new User({
+            email: user.email,
+            firstName: user.name?.split(" ")[0] || "",
+            lastName: user.name?.split(" ")[1] || "",
+            username: user.email?.split("@")[0],
+            avatarUrl: user.image,
+            provider: "google",
+            providerId: account.providerAccountId,
+          });
+          await dbUser.save();
+        }
+        user.id = dbUser._id.toString();
+        user.username = dbUser.username;
+        user.role = dbUser.role;
+        user.avatarUrl = dbUser.avatarUrl;
+        user.provider = dbUser.provider;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.username = user.username;
         token.role = user.role;
+        token.avatarUrl = user.avatarUrl;
+        token.provider = user.provider;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        session.user.username = token.username;
         session.user.role = token.role;
+        session.user.avatarUrl = token.avatarUrl;
+        session.user.provider = token.provider;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
-});
+  pages: {
+    signIn: "/auth/login",
+  },
+  session: {
+    strategy: "jwt",
+  },
+  secret: config.nextAuth.secret,
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

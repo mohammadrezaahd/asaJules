@@ -2,17 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { Container, Typography, Grid, Card, CardContent } from '@mui/material';
-import { IArticle } from '@/models/Article';
+import { Article } from '@/types';
+import { articlesApi } from '@/components/api';
 import Link from 'next/link';
 
 const ArticlesPage = () => {
-  const [articles, setArticles] = useState<IArticle[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const fetchArticles = async () => {
-      const res = await fetch('/api/articles');
-      const data = await res.json();
-      setArticles(data);
+      try {
+        const fetchedArticles = await articlesApi.getAll();
+        setArticles(fetchedArticles);
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      }
     };
     fetchArticles();
   }, []);

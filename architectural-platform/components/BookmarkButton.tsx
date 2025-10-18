@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@mui/material';
 import { useSession } from 'next-auth/react';
+import { usersApi, projectsApi, articlesApi } from '@/components/api';
 
 const BookmarkButton = ({ projectId, articleId }: { projectId?: string; articleId?: string }) => {
   const { data: session } = useSession();
@@ -11,12 +12,15 @@ const BookmarkButton = ({ projectId, articleId }: { projectId?: string; articleI
   useEffect(() => {
     const fetchBookmarks = async () => {
       if (session) {
-        const res = await fetch('/api/user/bookmarks');
-        const data = await res.json();
-        if (projectId) {
-          setIsBookmarked(data.projects.includes(projectId));
-        } else if (articleId) {
-          setIsBookmarked(data.articles.includes(articleId));
+        try {
+          const bookmarks = await usersApi.getBookmarks();
+          if (projectId) {
+            setIsBookmarked(bookmarks.projects.includes(projectId));
+          } else if (articleId) {
+            setIsBookmarked(bookmarks.articles.includes(articleId));
+          }
+        } catch (error) {
+          console.error('Failed to fetch bookmarks:', error);
         }
       }
     };
@@ -24,13 +28,15 @@ const BookmarkButton = ({ projectId, articleId }: { projectId?: string; articleI
   }, [session, projectId, articleId]);
 
   const handleBookmark = async () => {
-    const url = projectId
-      ? `/api/projects/${projectId}/bookmark`
-      : `/api/articles/${articleId}/bookmark`;
-
-    const res = await fetch(url, { method: 'POST' });
-    if (res.ok) {
+    try {
+      if (projectId) {
+        await projectsApi.bookmark(projectId);
+      } else if (articleId) {
+        await articlesApi.bookmark(articleId);
+      }
       setIsBookmarked(!isBookmarked);
+    } catch (error) {
+      console.error('Failed to bookmark:', error);
     }
   };
 
