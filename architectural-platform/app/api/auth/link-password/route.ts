@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
-import User from '@/models/User';
+import '@/lib/models'; // Import all models to register them
+import { User } from '@/lib/models';
 import { hashPassword } from '@/lib/auth';
 import { authOptions } from '../[...nextauth]/route';
 
