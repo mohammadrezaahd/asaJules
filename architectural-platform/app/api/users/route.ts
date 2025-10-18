@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import User from '@/models/User';
+import '@/lib/models'; // Import all models to register them
+import { User } from '@/lib/models';
 
 export async function GET(req: Request) {
   try {

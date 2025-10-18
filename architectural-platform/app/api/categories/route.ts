@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Category from '@/models/Category';
+import '@/lib/models'; // Import all models to register them
+import { Category } from '@/lib/models';
 
 // Helper function to create slug from name
 function createSlug(name: string): string {

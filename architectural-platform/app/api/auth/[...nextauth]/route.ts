@@ -2,7 +2,8 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
-import User from '@/models/User';
+import '@/lib/models'; // Import all models to register them
+import { User } from '@/lib/models';
 import { verifyPassword } from '@/lib/auth';
 import config from '@/lib/config';
 import { AuthOptions } from 'next-auth';

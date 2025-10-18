@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
-import Project from '@/models/Project';
+import '@/lib/models'; // Import all models to register them
+import { Project } from '@/lib/models';
 import { authOptions } from '../auth/[...nextauth]/route';
 import mongoose from 'mongoose';
 

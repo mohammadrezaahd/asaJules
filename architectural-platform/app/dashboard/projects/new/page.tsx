@@ -79,7 +79,6 @@ export default function NewProjectPage() {
     shadows?: boolean;
     cameraMode?: 'perspective' | 'orthographic';
   }) => {
-    console.log('New project - ModelConfig changing:', config);
     setModelConfig({
       position: config.position || [0, 0, 0],
       rotation: config.rotation || [0, 0, 0],

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
-import Article from "@/models/Article";
+import '@/lib/models'; // Import all models to register them
+import { Article } from '@/lib/models';
 import { getToken } from "next-auth/jwt";
 
 export async function GET(req: NextRequest) {
