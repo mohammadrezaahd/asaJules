@@ -1,75 +1,68 @@
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useRef } from "react";
-import * as THREE from "three";
-import Inspector from "./Inspector";
+import React, { useEffect } from "react";
+import { Mesh } from "three";
 
-interface ModelProps {
+interface ModelProps extends React.ComponentProps<"group"> {
   url: string;
-  scale: number;
-  rotation: [number, number, number];
-  position: [number, number, number];
-  materialMode: "solid" | "wireframe";
-  shadows: boolean;
-  enableInspector?: boolean;
-  controls?: {
-    position: [number, number, number];
-    rotation: [number, number, number];
-  };
-  setControls?: React.Dispatch<React.SetStateAction<{
-    position: [number, number, number];
-    rotation: [number, number, number];
-  }>>;
+  materialMode?: 'solid' | 'wireframe';
 }
 
-export default function Model({
-  url,
-  scale,
-  rotation,
-  position,
-  materialMode,
-  shadows,
-  enableInspector = false,
-  controls,
-  setControls,
-}: ModelProps) {
-  const gltf = useGLTF(url);
-  const scene = Array.isArray(gltf) ? gltf[0].scene : gltf.scene;
-  const modelRef = useRef<THREE.Group>(null);
-
+const Model: React.FC<ModelProps> = (props) => {
+  console.log("Thing component - Loading model from URL:", props.url);
+  
+  const hasValidUrl = props.url && props.url.trim();
+  
+  // Always call hooks in the same order
+  const gltf = useGLTF(hasValidUrl ? props.url : "/placeholder.glb"); // fallback URL
+  const scene = gltf.scene;
+  
   useEffect(() => {
-    scene.traverse((child: THREE.Object3D) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = shadows;
-        child.receiveShadow = shadows;
-        if (materialMode === "wireframe") {
-          if (child.material instanceof THREE.Material) {
-            (child.material as THREE.MeshStandardMaterial).wireframe = true;
-          }
-        } else {
-          if (child.material instanceof THREE.Material) {
-            (child.material as THREE.MeshStandardMaterial).wireframe = false;
-          }
+    console.log("URL validation:", hasValidUrl ? "Valid" : "Invalid");
+    if (hasValidUrl && scene) {
+      console.log("Model loaded successfully:", scene);
+      console.log("Model has children:", scene.children.length);
+      
+      // Apply material mode to all meshes in the scene
+      scene.traverse((child) => {
+        console.log("Model child:", child.type, child.name);
+        if (child instanceof Mesh && child.material) {
+          child.material.wireframe = props.materialMode === 'wireframe';
         }
-      }
-    });
-  }, [scene, materialMode, shadows]);
+      });
+    }
+  }, [scene, hasValidUrl, props.materialMode]);
 
-  return enableInspector && controls && setControls ? (
-    <Inspector controls={controls} setControls={setControls}>
-      <primitive
-        ref={modelRef}
-        object={scene}
-        scale={scale}
-        // Position and rotation are now handled by the Inspector's animated group
-      />
-    </Inspector>
-  ) : (
-    <primitive
-      ref={modelRef}
-      object={scene}
-      scale={scale}
-      rotation={rotation}
-      position={position}
-    />
+  // Check if URL is valid
+  if (!hasValidUrl) {
+    console.log("No valid URL provided");
+    return (
+      <group {...props}>
+        <mesh>
+          <boxGeometry args={[2, 0.1, 2]} />
+          <meshStandardMaterial color="red" />
+        </mesh>
+      </group>
+    );
+  }
+
+  if (!scene) {
+    console.log("Model not loaded yet...");
+    // Show a loading indicator
+    return (
+      <group {...props}>
+        <mesh>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial color="orange" wireframe />
+        </mesh>
+      </group>
+    );
+  }
+
+  return (
+    <group {...props}>
+      <primitive object={scene} />
+    </group>
   );
-}
+};
+
+export default Model;

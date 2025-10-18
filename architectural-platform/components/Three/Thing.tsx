@@ -1,5 +1,5 @@
 import { useGLTF } from "@react-three/drei";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Mesh } from "three";
 
 interface ThingProps extends React.ComponentProps<"group"> {
@@ -7,7 +7,7 @@ interface ThingProps extends React.ComponentProps<"group"> {
   materialMode?: 'solid' | 'wireframe';
 }
 
-export default function Thing(props: ThingProps) {
+const Thing: React.FC<ThingProps> = (props) => {
   console.log("Thing component - Loading model from URL:", props.url);
   
   const hasValidUrl = props.url && props.url.trim();
@@ -63,4 +63,6 @@ export default function Thing(props: ThingProps) {
       <primitive object={scene} />
     </group>
   );
-}
+};
+
+export default Thing;

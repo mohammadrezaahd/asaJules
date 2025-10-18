@@ -1,264 +1,352 @@
-"use client";
-
-import React, { Suspense, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  OrbitControls,
-  PerspectiveCamera,
-  OrthographicCamera,
-} from "@react-three/drei";
-import ModelToolbar from "./ModelToolbar";
-import LightingControls from "./LightingControls";
-import { Box } from "@mui/material";
-import * as THREE from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import Model from "./Model";
+import React, { useState, useRef, useEffect } from "react";
+import Toolbar from "./Toolbar";
+import Scene from "./Scene";
+import { Controls } from "@/types/interfaces/model.interface";
 
-interface ModelViewerConfig {
-  ambientIntensity?: number;
-  directionalIntensity?: number;
-  lightColor?: string;
-  scale?: number;
-  rotation?: [number, number, number];
-  position?: [number, number, number];
-  backgroundColor?: string;
-  materialMode?: "solid" | "wireframe";
-  shadows?: boolean;
-  cameraMode?: "perspective" | "orthographic";
-}
-
-interface ModelViewerProps {
+interface IExAppProps {
   modelUrl: string;
-  initialConfig?: ModelViewerConfig;
-  onSave?: (config: ModelViewerConfig) => void;
+  initialConfig?: {
+    position?: [number, number, number];
+    rotation?: [number, number, number];
+    scale?: number;
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+    backgroundColor?: string;
+    materialMode?: "solid" | "wireframe";
+    shadows?: boolean;
+    cameraMode?: "perspective" | "orthographic";
+  };
+  onConfigChange?: (config: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: number;
+    ambientIntensity?: number;
+    directionalIntensity?: number;
+    lightColor?: string;
+    backgroundColor?: string;
+    materialMode?: "solid" | "wireframe";
+    shadows?: boolean;
+    cameraMode?: "perspective" | "orthographic";
+  }) => void;
   isAdmin?: boolean;
-  showToolbar?: boolean;
 }
 
-export default function ModelViewer({
+const ModelViewer: React.FC<IExAppProps> = ({
   modelUrl,
   initialConfig,
-  onSave,
+  onConfigChange,
   isAdmin = false,
-  showToolbar,
-}: ModelViewerProps) {
-  const controlsRef = useRef<OrbitControlsImpl>(null);
-  const perspectiveCameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const orthographicCameraRef = useRef<THREE.OrthographicCamera>(null);
-  const onSaveRef = useRef(onSave);
-  const isInitializedRef = useRef(false);
+}) => {
+  console.log("ExampleApp received modelUrl:", modelUrl);
+  console.log("ExampleApp received initialConfig:", initialConfig);
+  console.log("ExampleApp isAdmin mode:", isAdmin);
 
-  // Keep onSave ref up to date
-  React.useEffect(() => {
-    onSaveRef.current = onSave;
-  }, [onSave]);
-
-  // Single controls state - exactly like Example
-  const [controls, setControls] = useState({
-    position: [0, 0, 0] as [number, number, number],
-    rotation: [0, 0, 0] as [number, number, number], // In radians
+  const [controls, setControls] = useState<Controls>({
+    position: initialConfig?.position ?? [0, 0, 0],
+    rotation: initialConfig?.rotation ?? [0, 0, 0],
+    scale: initialConfig?.scale ?? 1,
   });
 
-  // Toolbar state
-  const [ambientIntensity, setAmbientIntensity] = useState(0.5);
-  const [directionalIntensity, setDirectionalIntensity] = useState(1);
-  const [lightColor, setLightColor] = useState("#ffffff");
-  const [scale, setScale] = useState(1);
-  const [backgroundColor, setBackgroundColor] = useState("#f0f0f0");
+  const [lightingConfig, setLightingConfig] = useState({
+    ambientIntensity: initialConfig?.ambientIntensity ?? 0.5,
+    directionalIntensity: initialConfig?.directionalIntensity ?? 1,
+    lightColor: initialConfig?.lightColor ?? "#ffffff",
+  });
+
+  const [backgroundColor, setBackgroundColor] = useState(
+    initialConfig?.backgroundColor ?? "#f0f0f0"
+  );
   const [materialMode, setMaterialMode] = useState<"solid" | "wireframe">(
-    "solid"
+    initialConfig?.materialMode ?? "solid"
   );
-  const [shadows, setShadows] = useState(true);
+  const [shadows, setShadows] = useState(initialConfig?.shadows ?? true);
   const [cameraMode, setCameraMode] = useState<"perspective" | "orthographic">(
-    "perspective"
+    initialConfig?.cameraMode ?? "perspective"
   );
 
-  // Initialize state from initialConfig only once when component mounts
-  React.useEffect(() => {
-    if (!isInitializedRef.current) {
-      setAmbientIntensity(initialConfig?.ambientIntensity ?? 0.5);
-      setDirectionalIntensity(initialConfig?.directionalIntensity ?? 1);
-      setLightColor(initialConfig?.lightColor ?? "#ffffff");
-      setScale(initialConfig?.scale ?? 1);
-      
-      // Initialize controls - convert degrees to radians for rotation
-      const initRotation = initialConfig?.rotation ?? [0, 0, 0];
-      const initPosition = initialConfig?.position ?? [0, 0, 0];
-      
-      setControls({
-        position: initPosition,
-        rotation: initRotation.map(deg => THREE.MathUtils.degToRad(deg)) as [number, number, number],
-      });
-      
-      setBackgroundColor(initialConfig?.backgroundColor ?? "#f0f0f0");
-      setMaterialMode(initialConfig?.materialMode ?? "solid");
-      setShadows(initialConfig?.shadows ?? true);
-      setCameraMode(initialConfig?.cameraMode ?? "perspective");
-      isInitializedRef.current = true;
-    }
-  }, [initialConfig]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMouseOverRef = useRef(false);
 
-  // Auto-sync changes to parent component whenever any value changes
-  // Use debouncing to prevent excessive calls
-  React.useEffect(() => {
-    // Don't trigger onSave during initial setup
-    if (!isInitializedRef.current) {
-      return;
-    }
+  // Handle mouse enter/leave to track when cursor is over container
+  const handleMouseEnter = () => {
+    isMouseOverRef.current = true;
+  };
 
-    const timeoutId = setTimeout(() => {
-      if (onSaveRef.current) {
-        // Convert rotation back to degrees for save
-        const rotationInDegrees = controls.rotation.map(rad => THREE.MathUtils.radToDeg(rad)) as [number, number, number];
-        
-        onSaveRef.current({
-          ambientIntensity,
-          directionalIntensity,
-          lightColor,
-          scale,
-          rotation: rotationInDegrees,
-          position: controls.position,
+  const handleMouseLeave = () => {
+    isMouseOverRef.current = false;
+  };
+
+  // Handle wheel events with proper event listener
+  useEffect(() => {
+    const handleWheel = (event: WheelEvent) => {
+      // Only prevent default if mouse is over our container
+      if (isMouseOverRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const scaleSensitivity = 0.001;
+        const scaleChange = -event.deltaY * scaleSensitivity;
+        const newScale = Math.max(
+          0.1,
+          Math.min(10, controls.scale + scaleChange)
+        );
+
+        setControls((prev) => {
+          const newControls = {
+            ...prev,
+            scale: newScale,
+          };
+          // Notify parent if callback is provided
+          if (onConfigChange) {
+            onConfigChange(newControls);
+          }
+          return newControls;
+        });
+      }
+    };
+
+    // Add event listener to document with passive: false
+    document.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener("wheel", handleWheel);
+    };
+  }, [controls.scale, onConfigChange]);
+
+  // Wrapper function for setControls to notify parent
+  const handleSetControls = (
+    newControls: Controls | ((prev: Controls) => Controls)
+  ) => {
+    setControls((prev) => {
+      const finalControls =
+        typeof newControls === "function" ? newControls(prev) : newControls;
+      // Notify parent if callback is provided
+      if (onConfigChange) {
+        onConfigChange({
+          ...finalControls,
+          ambientIntensity: lightingConfig.ambientIntensity,
+          directionalIntensity: lightingConfig.directionalIntensity,
+          lightColor: lightingConfig.lightColor,
           backgroundColor,
           materialMode,
           shadows,
           cameraMode,
         });
       }
-    }, 150); // 150ms debounce - faster response
-
-    return () => clearTimeout(timeoutId);
-  }, [
-    ambientIntensity,
-    directionalIntensity,
-    lightColor,
-    scale,
-    controls.rotation,
-    controls.position,
-    backgroundColor,
-    materialMode,
-    shadows,
-    cameraMode,
-  ]);
-
-
-
-  const resetLighting = () => {
-    setAmbientIntensity(0.5);
-    setDirectionalIntensity(1);
-    setLightColor("#ffffff");
-  };
-
-  const resetTransform = () => {
-    setScale(1);
-    setControls({
-      position: [0, 0, 0],
-      rotation: [0, 0, 0], // radians
+      return finalControls;
     });
   };
 
-  const resetCamera = () => {
-    controlsRef.current?.reset();
+  // Handler for lighting changes
+  const handleLightingChange = (newLightingConfig: {
+    ambientIntensity: number;
+    directionalIntensity: number;
+    lightColor: string;
+  }) => {
+    setLightingConfig(newLightingConfig);
+    if (onConfigChange) {
+      onConfigChange({
+        ...controls,
+        ...newLightingConfig,
+        backgroundColor,
+        materialMode,
+        shadows,
+        cameraMode,
+      });
+    }
   };
 
-  const focusOnModel = () => {
-    // This requires a bit more logic to calculate the bounding box and adjust the camera
-    // For now, we'll just reset the camera
-    controlsRef.current?.reset();
+  // Handler for background color changes
+  const handleBackgroundChange = (color: string) => {
+    setBackgroundColor(color);
+    if (onConfigChange) {
+      onConfigChange({
+        ...controls,
+        ambientIntensity: lightingConfig.ambientIntensity,
+        directionalIntensity: lightingConfig.directionalIntensity,
+        lightColor: lightingConfig.lightColor,
+        backgroundColor: color,
+        materialMode,
+        shadows,
+        cameraMode,
+      });
+    }
   };
 
-  const toggleCameraMode = () => {
-    setCameraMode(
-      cameraMode === "perspective" ? "orthographic" : "perspective"
+  // Handler for material mode changes
+  const handleMaterialModeChange = (mode: "solid" | "wireframe") => {
+    setMaterialMode(mode);
+    if (onConfigChange) {
+      onConfigChange({
+        ...controls,
+        ambientIntensity: lightingConfig.ambientIntensity,
+        directionalIntensity: lightingConfig.directionalIntensity,
+        lightColor: lightingConfig.lightColor,
+        backgroundColor,
+        materialMode: mode,
+        shadows,
+        cameraMode,
+      });
+    }
+  };
+
+  // Handler for shadows changes
+  const handleShadowsChange = (enabled: boolean) => {
+    setShadows(enabled);
+    if (onConfigChange) {
+      onConfigChange({
+        ...controls,
+        ambientIntensity: lightingConfig.ambientIntensity,
+        directionalIntensity: lightingConfig.directionalIntensity,
+        lightColor: lightingConfig.lightColor,
+        backgroundColor,
+        materialMode,
+        shadows: enabled,
+        cameraMode,
+      });
+    }
+  };
+
+  // Handler for camera mode changes
+  const handleCameraModeChange = (mode: "perspective" | "orthographic") => {
+    setCameraMode(mode);
+    if (onConfigChange) {
+      onConfigChange({
+        ...controls,
+        ambientIntensity: lightingConfig.ambientIntensity,
+        directionalIntensity: lightingConfig.directionalIntensity,
+        lightColor: lightingConfig.lightColor,
+        backgroundColor,
+        materialMode,
+        shadows,
+        cameraMode: mode,
+      });
+    }
+  };
+
+  // Check if modelUrl is valid
+  if (!modelUrl) {
+    return (
+      <div
+        style={{
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f0f0f0",
+        }}
+      >
+        <div
+          style={{
+            padding: "20px",
+            background: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            borderRadius: "8px",
+          }}
+        >
+          No model URL provided
+        </div>
+      </div>
     );
-  };
-
-  const toggleShadows = () => {
-    setShadows(!shadows);
-  };
+  }
 
   return (
-    <Box>
-      {(showToolbar ?? isAdmin) && (
-        <ModelToolbar
-          mode={isAdmin ? "full" : "minimal"}
-          ambientIntensity={ambientIntensity}
-          setAmbientIntensity={setAmbientIntensity}
-          directionalIntensity={directionalIntensity}
-          setDirectionalIntensity={setDirectionalIntensity}
-          lightColor={lightColor}
-          setLightColor={setLightColor}
-          resetLighting={resetLighting}
-          scale={scale}
-          setScale={setScale}
-          rotation={controls.rotation.map(rad => THREE.MathUtils.radToDeg(rad)) as [number, number, number]}
-          setRotation={(newRotationDegrees) => {
-            const rotationInRadians = newRotationDegrees.map(deg => THREE.MathUtils.degToRad(deg)) as [number, number, number];
-            setControls(prev => ({
-              ...prev,
-              rotation: rotationInRadians,
-            }));
-          }}
-          position={controls.position}
-          setPosition={(newPosition) => {
-            setControls(prev => ({
-              ...prev,
-              position: newPosition,
-            }));
-          }}
-          resetTransform={resetTransform}
-          backgroundColor={backgroundColor}
-          setBackgroundColor={setBackgroundColor}
-          materialMode={materialMode}
-          setMaterialMode={setMaterialMode}
-          shadows={shadows}
-          toggleShadows={toggleShadows}
-          resetCamera={resetCamera}
-          focusOnModel={focusOnModel}
-          cameraMode={cameraMode}
-          toggleCameraMode={toggleCameraMode}
-        />
-      )}
+    <div
+      ref={containerRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      tabIndex={0} // Make it focusable
+      style={{
+        width: "100%",
+        height: "600px", // Fixed height instead of viewport height
+        position: "relative",
+        border: "1px solid #ddd",
+        borderRadius: "8px",
+        overflow: "hidden",
+        outline: "none", // Remove focus outline
+      }}
+    >
       <Canvas
-        shadows={shadows}
-        dpr={[1, 2]}
-        style={{ width: "100%", height: "500px", backgroundColor }}
+        style={{ width: "100%", height: "100%" }}
+        gl={{ antialias: true }}
+        shadows
+        camera={{ position: [5, 5, 5], fov: 50 }}
+        resize={{ debounce: 100 }}
       >
-        {cameraMode === "perspective" ? (
-          <PerspectiveCamera
-            ref={perspectiveCameraRef}
-            makeDefault
-            fov={50}
-            position={[5, 5, 5]}
-          />
-        ) : (
-          <OrthographicCamera
-            ref={orthographicCameraRef}
-            makeDefault
-            position={[5, 5, 5]}
-            zoom={50}
-          />
-        )}
-        <LightingControls
-          ambientIntensity={ambientIntensity}
-          directionalIntensity={directionalIntensity}
-          lightColor={lightColor}
+        <Scene
+          controls={controls}
+          setControls={handleSetControls}
+          url={modelUrl}
+          lightingConfig={lightingConfig}
+          backgroundColor={backgroundColor}
+          shadows={shadows}
+          materialMode={materialMode}
+          cameraMode={cameraMode}
         />
-        <Suspense fallback={null}>
-          <Model
-            url={modelUrl}
-            scale={scale}
-            rotation={controls.rotation}
-            position={controls.position}
-            materialMode={materialMode}
-            shadows={shadows}
-            enableInspector={showToolbar ?? isAdmin}
-            controls={controls}
-            setControls={setControls}
-          />
-        </Suspense>
-        <OrbitControls ref={controlsRef} />
       </Canvas>
-    </Box>
-  );
-}
+      <Toolbar
+        controls={controls}
+        setControls={handleSetControls}
+        lightingConfig={lightingConfig}
+        backgroundColor={backgroundColor}
+        materialMode={materialMode}
+        shadows={shadows}
+        cameraMode={cameraMode}
+        onLightingChange={handleLightingChange}
+        onBackgroundChange={handleBackgroundChange}
+        onMaterialModeChange={handleMaterialModeChange}
+        onShadowsChange={handleShadowsChange}
+        onCameraModeChange={handleCameraModeChange}
+      />
 
+      {/* Model URL Display for debugging */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          background: "rgba(0, 0, 0, 0.7)",
+          color: "white",
+          padding: "8px 12px",
+          borderRadius: "4px",
+          fontFamily: "monospace",
+          fontSize: "10px",
+          zIndex: 1001,
+          maxWidth: "300px",
+          wordBreak: "break-all",
+        }}
+      >
+        Model URL: {modelUrl}
+        <br />
+        Scale: {controls.scale.toFixed(2)}
+      </div>
+
+      {/* Instructions */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "10px",
+          left: "10px",
+          background: "rgba(0, 0, 0, 0.7)",
+          color: "white",
+          padding: "8px 12px",
+          borderRadius: "4px",
+          fontFamily: "monospace",
+          fontSize: "11px",
+          zIndex: 1001,
+        }}
+      >
+        🖱️ Left Click + Drag: Rotate
+        <br />
+        🖱️ Right Click + Drag: Move Position
+        <br />
+        🖱️ Scroll Wheel (on 3D area): Scale Model
+      </div>
+    </div>
+  );
+};
+
+export default ModelViewer;

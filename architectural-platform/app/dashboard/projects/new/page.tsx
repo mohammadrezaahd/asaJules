@@ -19,7 +19,7 @@ import CategoryAutocomplete from "@/components/Categories/CategoryAutocomplete";
 import TagsInput from "@/components/Common/TagsInput";
 import { useRouter } from "next/navigation";
 import { projectsApi, usersApi } from "@/components/api";
-import ExampleApp from "@/components/Three/Example/App";
+import { ModelViewer } from "@/components/Three";
 import { User, MediaFile, ModelConfig } from "@/types";
 import { CreateProjectDto } from "@/types/dto/project.dto";
 
@@ -408,7 +408,7 @@ export default function NewProjectPage() {
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
                   New 3D Viewer (with Position/Rotation/Scale Controls):
                 </Typography>
-                <ExampleApp
+                <ModelViewer
                   modelUrl={model.filepath}
                   initialConfig={{
                     position: modelConfig?.position ?? [0, 0, 0],

@@ -1,6 +1,5 @@
+import { Controls } from "@/types/interfaces/model.interface";
 import React from "react";
-
-import { Controls } from "./types";
 
 interface ToolbarProps {
   controls: Controls;
@@ -11,34 +10,38 @@ interface ToolbarProps {
     lightColor?: string;
   };
   backgroundColor?: string;
-  materialMode?: 'solid' | 'wireframe';
+  materialMode?: "solid" | "wireframe";
   shadows?: boolean;
-  cameraMode?: 'perspective' | 'orthographic';
+  cameraMode?: "perspective" | "orthographic";
   onLightingChange?: (config: {
     ambientIntensity: number;
     directionalIntensity: number;
     lightColor: string;
   }) => void;
   onBackgroundChange?: (color: string) => void;
-  onMaterialModeChange?: (mode: 'solid' | 'wireframe') => void;
+  onMaterialModeChange?: (mode: "solid" | "wireframe") => void;
   onShadowsChange?: (enabled: boolean) => void;
-  onCameraModeChange?: (mode: 'perspective' | 'orthographic') => void;
+  onCameraModeChange?: (mode: "perspective" | "orthographic") => void;
 }
 
-export default function Toolbar({ 
-  controls, 
+const Toolbar: React.FC<ToolbarProps> = ({
+  controls,
   setControls,
-  lightingConfig = { ambientIntensity: 0.5, directionalIntensity: 1, lightColor: '#ffffff' },
-  backgroundColor = '#f0f0f0',
-  materialMode = 'solid',
+  lightingConfig = {
+    ambientIntensity: 0.5,
+    directionalIntensity: 1,
+    lightColor: "#ffffff",
+  },
+  backgroundColor = "#f0f0f0",
+  materialMode = "solid",
   shadows = true,
-  cameraMode = 'perspective',
+  cameraMode = "perspective",
   onLightingChange,
   onBackgroundChange,
   onMaterialModeChange,
   onShadowsChange,
-  onCameraModeChange
-}: ToolbarProps) {
+  onCameraModeChange,
+}) => {
   const handlePositionChange = (axis: number, value: string) => {
     const newPosition: [number, number, number] = [...controls.position];
     newPosition[axis] = parseFloat(value);
@@ -65,12 +68,15 @@ export default function Toolbar({
     }));
   };
 
-  const handleLightingChange = (property: 'ambientIntensity' | 'directionalIntensity' | 'lightColor', value: string | number) => {
+  const handleLightingChange = (
+    property: "ambientIntensity" | "directionalIntensity" | "lightColor",
+    value: string | number
+  ) => {
     if (onLightingChange) {
       onLightingChange({
         ambientIntensity: lightingConfig.ambientIntensity ?? 0.5,
         directionalIntensity: lightingConfig.directionalIntensity ?? 1,
-        lightColor: lightingConfig.lightColor ?? '#ffffff',
+        lightColor: lightingConfig.lightColor ?? "#ffffff",
         [property]: value,
       });
     }
@@ -220,10 +226,17 @@ export default function Toolbar({
             max="2"
             step="0.1"
             value={lightingConfig.ambientIntensity}
-            onChange={(e) => handleLightingChange('ambientIntensity', parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleLightingChange(
+                "ambientIntensity",
+                parseFloat(e.target.value)
+              )
+            }
             style={{ width: "100px", marginRight: "8px" }}
           />
-          <span style={{ fontSize: "10px" }}>{lightingConfig.ambientIntensity?.toFixed(1)}</span>
+          <span style={{ fontSize: "10px" }}>
+            {lightingConfig.ambientIntensity?.toFixed(1)}
+          </span>
         </div>
         <div style={{ marginBottom: "8px" }}>
           <label>Directional: </label>
@@ -233,32 +246,54 @@ export default function Toolbar({
             max="3"
             step="0.1"
             value={lightingConfig.directionalIntensity}
-            onChange={(e) => handleLightingChange('directionalIntensity', parseFloat(e.target.value))}
+            onChange={(e) =>
+              handleLightingChange(
+                "directionalIntensity",
+                parseFloat(e.target.value)
+              )
+            }
             style={{ width: "100px", marginRight: "8px" }}
           />
-          <span style={{ fontSize: "10px" }}>{lightingConfig.directionalIntensity?.toFixed(1)}</span>
+          <span style={{ fontSize: "10px" }}>
+            {lightingConfig.directionalIntensity?.toFixed(1)}
+          </span>
         </div>
         <div>
           <label>Color: </label>
           <input
             type="color"
             value={lightingConfig.lightColor}
-            onChange={(e) => handleLightingChange('lightColor', e.target.value)}
-            style={{ width: "50px", height: "25px", border: "none", borderRadius: "3px" }}
+            onChange={(e) => handleLightingChange("lightColor", e.target.value)}
+            style={{
+              width: "50px",
+              height: "25px",
+              border: "none",
+              borderRadius: "3px",
+            }}
           />
         </div>
       </div>
 
       {/* Background Color */}
       <div style={groupStyle}>
-        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>Background</div>
+        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>
+          Background
+        </div>
         <div>
           <label>Color: </label>
           <input
             type="color"
             value={backgroundColor}
-            onChange={(e) => onBackgroundChange && onBackgroundChange(e.target.value)}
-            style={{ width: "50px", height: "25px", border: "none", borderRadius: "3px", marginRight: "8px" }}
+            onChange={(e) =>
+              onBackgroundChange && onBackgroundChange(e.target.value)
+            }
+            style={{
+              width: "50px",
+              height: "25px",
+              border: "none",
+              borderRadius: "3px",
+              marginRight: "8px",
+            }}
           />
           <span style={{ fontSize: "10px" }}>{backgroundColor}</span>
         </div>
@@ -272,8 +307,10 @@ export default function Toolbar({
             <input
               type="radio"
               name="materialMode"
-              checked={materialMode === 'solid'}
-              onChange={() => onMaterialModeChange && onMaterialModeChange('solid')}
+              checked={materialMode === "solid"}
+              onChange={() =>
+                onMaterialModeChange && onMaterialModeChange("solid")
+              }
               style={{ marginRight: "5px" }}
             />
             Solid
@@ -282,8 +319,10 @@ export default function Toolbar({
             <input
               type="radio"
               name="materialMode"
-              checked={materialMode === 'wireframe'}
-              onChange={() => onMaterialModeChange && onMaterialModeChange('wireframe')}
+              checked={materialMode === "wireframe"}
+              onChange={() =>
+                onMaterialModeChange && onMaterialModeChange("wireframe")
+              }
               style={{ marginRight: "5px" }}
             />
             Wireframe
@@ -299,7 +338,9 @@ export default function Toolbar({
             <input
               type="checkbox"
               checked={shadows}
-              onChange={(e) => onShadowsChange && onShadowsChange(e.target.checked)}
+              onChange={(e) =>
+                onShadowsChange && onShadowsChange(e.target.checked)
+              }
               style={{ marginRight: "5px" }}
             />
             Enable Shadows
@@ -315,8 +356,10 @@ export default function Toolbar({
             <input
               type="radio"
               name="cameraMode"
-              checked={cameraMode === 'perspective'}
-              onChange={() => onCameraModeChange && onCameraModeChange('perspective')}
+              checked={cameraMode === "perspective"}
+              onChange={() =>
+                onCameraModeChange && onCameraModeChange("perspective")
+              }
               style={{ marginRight: "5px" }}
             />
             Perspective
@@ -325,8 +368,10 @@ export default function Toolbar({
             <input
               type="radio"
               name="cameraMode"
-              checked={cameraMode === 'orthographic'}
-              onChange={() => onCameraModeChange && onCameraModeChange('orthographic')}
+              checked={cameraMode === "orthographic"}
+              onChange={() =>
+                onCameraModeChange && onCameraModeChange("orthographic")
+              }
               style={{ marginRight: "5px" }}
             />
             Orthographic
@@ -335,4 +380,6 @@ export default function Toolbar({
       </div>
     </div>
   );
-}
+};
+
+export default Toolbar;

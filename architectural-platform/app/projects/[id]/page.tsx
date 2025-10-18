@@ -15,7 +15,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { projectsApi } from "@/components/api";
 import { Project } from "@/types";
-import ExampleApp from "@/components/Three/Example/App";
+import { ModelViewer } from "@/components/Three";
 
 export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -140,7 +140,7 @@ export default function ProjectDetailPage() {
       </Button>
       {showModelViewer && project.modelUrl && (
         <Box sx={{ mt: 4 }}>
-          <ExampleApp
+          <ModelViewer
             modelUrl={project.modelUrl}
             initialConfig={{
               position: project.modelConfig?.position ?? [0, 0, 0],
