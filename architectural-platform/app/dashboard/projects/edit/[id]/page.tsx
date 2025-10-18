@@ -502,6 +502,7 @@ export default function EditProjectPage() {
                 ? "images"
                 : "all"
             }
+            showUpload
           />
         </>
       )}

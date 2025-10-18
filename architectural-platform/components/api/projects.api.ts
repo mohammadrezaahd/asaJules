@@ -1,13 +1,18 @@
 import axiosInstance from "./axios.config";
-import { Project } from "@/types";
+import { Project, ProjectQueryParams } from "@/types";
 import { CreateProjectDto, UpdateProjectDto } from "@/types/dto/project.dto";
 import { ApiResponse, ListApiResponse } from "@/types";
 import { apiUtils, apiListUtils } from "./apiUtils";
 
 export const projectsApi = {
-  async getAll(params?: { page?: number; limit?: number; category?: string; search?: string }): Promise<ListApiResponse<Project>> {
+  async getAll(params?: ProjectQueryParams): Promise<ListApiResponse<Project>> {
+    const cleanParams = {
+      ...params,
+      tags: params?.tags?.join(',') // Convert array to comma-separated string
+    };
+    
     return apiListUtils<Project>(() => 
-      axiosInstance.get("/projects", { params }).then(res => res.data)
+      axiosInstance.get("/projects", { params: cleanParams }).then(res => res.data)
     );
   },
 

@@ -30,3 +30,12 @@ export interface ModelConfig {
   shadows?: boolean;
   cameraMode?: 'perspective' | 'orthographic';
 }
+
+export interface ProjectQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+  status?: 'Draft' | 'Published';
+  tags?: string[];
+}

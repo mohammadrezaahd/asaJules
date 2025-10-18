@@ -38,26 +38,20 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({
   const handleTypeChange = (event: SelectChangeEvent<string>) => {
     onFiltersChange({
       ...filters,
-      type: event.target.value as 'models' | 'images' | 'all',
+      type: event.target.value as "models" | "images" | "all",
       page: 1, // Reset to first page when filtering
-    });
-  };
-
-  const handleLimitChange = (event: SelectChangeEvent<number>) => {
-    onFiltersChange({
-      ...filters,
-      limit: event.target.value as number,
-      page: 1, // Reset to first page when changing items per page
     });
   };
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Box
+        sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}
+      >
         {/* Search */}
         <TextField
           placeholder="Search files..."
-          value={filters.search || ''}
+          value={filters.search || ""}
           onChange={handleSearchChange}
           variant="outlined"
           size="small"
@@ -75,7 +69,7 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({
         <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
           <InputLabel>File Type</InputLabel>
           <Select
-            value={filters.type || 'all'}
+            value={filters.type || "all"}
             onChange={handleTypeChange}
             label="File Type"
           >
@@ -87,44 +81,32 @@ const MediaFilters: React.FC<MediaFiltersProps> = ({
           </Select>
         </FormControl>
 
-        {/* Items per page */}
-        <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Per Page</InputLabel>
-          <Select
-            value={filters.limit || 12}
-            onChange={handleLimitChange}
-            label="Per Page"
-          >
-            <MenuItem value={6}>6</MenuItem>
-            <MenuItem value={12}>12</MenuItem>
-            <MenuItem value={24}>24</MenuItem>
-            <MenuItem value={48}>48</MenuItem>
-          </Select>
-        </FormControl>
-
         {/* Results count */}
-        <Chip 
-          label={`${totalItems} items`} 
-          variant="outlined" 
-          size="small"
-        />
+        <Chip label={`${totalItems} items`} variant="outlined" size="small" />
       </Box>
 
       {/* Active filters */}
-      {(filters.search || (filters.type && filters.type !== 'all')) && (
-        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      {(filters.search || (filters.type && filters.type !== "all")) && (
+        <Box sx={{ mt: 2, display: "flex", gap: 1, flexWrap: "wrap" }}>
           {filters.search && (
             <Chip
               label={`Search: "${filters.search}"`}
-              onDelete={() => onFiltersChange({ ...filters, search: '', page: 1 })}
+              onDelete={() =>
+                onFiltersChange({ ...filters, search: "", page: 1 })
+              }
               size="small"
               variant="outlined"
             />
           )}
-          {filters.type && filters.type !== 'all' && (
+          {filters.type && filters.type !== "all" && (
             <Chip
-              label={`Type: ${MEDIA_FILTER_TYPES.find(ft => ft.value === filters.type)?.label}`}
-              onDelete={() => onFiltersChange({ ...filters, type: 'all', page: 1 })}
+              label={`Type: ${
+                MEDIA_FILTER_TYPES.find((ft) => ft.value === filters.type)
+                  ?.label
+              }`}
+              onDelete={() =>
+                onFiltersChange({ ...filters, type: "all", page: 1 })
+              }
               size="small"
               variant="outlined"
             />

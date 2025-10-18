@@ -21,3 +21,11 @@ export interface CategoryTree {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CategoryQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  flat?: boolean;
+  parent?: string | null;
+}

@@ -465,6 +465,7 @@ export default function NewProjectPage() {
                 ? "images"
                 : "all"
             }
+            showUpload
           />
         </>
       )}

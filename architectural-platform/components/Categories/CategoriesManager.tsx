@@ -7,16 +7,15 @@ import {
   Box,
   Alert,
   CircularProgress,
-  TextField,
-  InputAdornment,
   Button,
 } from "@mui/material";
-import { Add as AddIcon, Search as SearchIcon } from "@mui/icons-material";
-import { Category } from "@/types";
+import { Add as AddIcon } from "@mui/icons-material";
+import { Category, CategoryQueryParams, PaginationInfo } from "@/types";
 import { categoriesApi } from "@/components/api/categories.api";
 import CategoriesList from "./CategoriesList";
 import CategoryModal from "./CategoryModal";
-import Pagination from "./Pagination";
+import CategoryFilters from "./CategoryFilters";
+import PaginationControls from "../Common/PaginationControls";
 
 interface CategoriesManagerProps {
   title?: string;
@@ -31,11 +30,17 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
+  const [filters, setFilters] = useState<CategoryQueryParams>({
+    page: 1,
+    limit: 12,
+    search: '',
+    flat: true,
+  });
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    totalItems: 0,
     totalPages: 1,
-    total: 0
+    currentPage: 1,
+    itemsPerPage: 12,
   });
 
   // Modal state
@@ -43,18 +48,19 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
-  const fetchCategories = useCallback(async (page = 1, limit = 10, search = searchTerm) => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await categoriesApi.getAll({ page, limit, search });
+      const response = await categoriesApi.getAll(filters);
       
       if (response.isSuccess && response.data) {
         setCategories(response.data);
         setPagination({
-          currentPage: response.pagination.currentPage,
-          totalPages: response.pagination.totalPages,
-          total: response.pagination.total || 0
+          totalItems: response.pagination?.totalItems || 0,
+          totalPages: response.pagination?.totalPages || 1,
+          currentPage: response.pagination?.currentPage || 1,
+          itemsPerPage: response.pagination?.itemsPerPage || 12,
         });
       } else {
         setError(response.error || 'Failed to fetch categories');
@@ -65,13 +71,13 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [filters]);
 
   const createCategory = async (categoryData: { name: string; description?: string; parent?: string }) => {
     try {
       const response = await categoriesApi.create(categoryData);
       if (response.isSuccess) {
-        await fetchCategories(pagination.currentPage);
+        await fetchCategories();
         return { success: true };
       } else {
         return { success: false, error: response.error || 'Failed to create category' };
@@ -86,7 +92,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     try {
       const response = await categoriesApi.update(id, categoryData);
       if (response.isSuccess) {
-        await fetchCategories(pagination.currentPage);
+        await fetchCategories();
         return { success: true };
       } else {
         return { success: false, error: response.error || 'Failed to update category' };
@@ -102,7 +108,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
       const response = await categoriesApi.delete(id, force);
       
       if (response.isSuccess) {
-        await fetchCategories(pagination.currentPage);
+        await fetchCategories();
         return { 
           success: true, 
           hasChildren: false,
@@ -156,17 +162,22 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     return { success: false, error: 'Invalid operation' };
   };
 
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCategory(null);
+  };
+
+  const handleFiltersChange = (newFilters: CategoryQueryParams) => {
+    setFilters(newFilters);
+  };
+
   const handlePageChange = (page: number) => {
-    fetchCategories(page, 10, searchTerm);
+    setFilters((prev) => ({ ...prev, page }));
   };
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
+  const handleItemsPerPageChange = (itemsPerPage: number) => {
+    setFilters((prev) => ({ ...prev, limit: itemsPerPage, page: 1 }));
   };
-
-  useEffect(() => {
-    fetchCategories(1, 10, searchTerm);
-  }, [fetchCategories, searchTerm]);
 
   useEffect(() => {
     fetchCategories();
@@ -201,23 +212,13 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
         </Alert>
       )}
 
-      {/* Search */}
+      {/* Filters */}
       {showSearch && (
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            placeholder="Search categories..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Box>
+        <CategoryFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalItems={pagination.totalItems}
+        />
       )}
 
       {/* Loading State */}
@@ -238,17 +239,19 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({
       )}
 
       {/* Pagination */}
-      <Pagination
-        currentPage={pagination.currentPage}
-        totalPages={pagination.totalPages}
-        total={pagination.total}
+      <PaginationControls
+        pagination={pagination}
+        currentPage={filters.page || 1}
+        itemsPerPage={filters.limit || 12}
         onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+        itemLabel="categories"
       />
 
       {/* Category Modal */}
       <CategoryModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
         onSubmit={handleModalSubmit}
         category={selectedCategory}
         mode={modalMode}

@@ -1,10 +1,10 @@
 import axiosInstance from "./axios.config";
-import { Category } from "@/types";
+import { Category, CategoryQueryParams } from "@/types";
 import { ApiResponse, ListApiResponse } from "@/types";
 import { apiUtils, apiListUtils } from "./apiUtils";
 
 export const categoriesApi = {
-  async getAll(params?: { page?: number; limit?: number; flat?: boolean; search?: string }): Promise<ListApiResponse<Category>> {
+  async getAll(params?: CategoryQueryParams): Promise<ListApiResponse<Category>> {
     return apiListUtils<Category>(() => 
       axiosInstance.get("/categories", { params: { ...params, flat: true } }).then(res => res.data)
     );
