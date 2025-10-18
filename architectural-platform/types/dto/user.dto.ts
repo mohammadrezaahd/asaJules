@@ -1,6 +1,6 @@
 export interface CreateUserDto {
-  name: string;
-  surname: string;
+  firstName: string;
+  lastName: string;
   username: string;
   email: string;
   password?: string; // Optional for OAuth

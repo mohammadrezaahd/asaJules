@@ -1,17 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button, TextField, Box, Alert } from '@mui/material';
-import { authApi } from '@/components/api';
-import { CreateUserDto } from '@/types/dto/user.dto';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, TextField, Box, Alert } from "@mui/material";
+import { AxiosError } from "axios";
+import { authApi } from "@/components/api";
+import { CreateUserDto } from "@/types/dto/user.dto";
 
 export default function RegisterForm() {
-  const [name, setName] = useState('');
-  const [surname, setSurname] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -20,8 +21,8 @@ export default function RegisterForm() {
     setError(null);
 
     const userData: CreateUserDto = {
-      name,
-      surname,
+      firstName,
+      lastName,
       username,
       email,
       password,
@@ -29,9 +30,13 @@ export default function RegisterForm() {
 
     try {
       await authApi.register(userData);
-      router.push('/auth/login');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred');
+      router.push("/auth/login");
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        setError(err.response?.data?.message || "An error occurred");
+      } else {
+        setError("An error occurred");
+      }
     }
   };
 
@@ -42,24 +47,24 @@ export default function RegisterForm() {
         margin="normal"
         required
         fullWidth
-        id="name"
-        label="Name"
-        name="name"
+        id="firstname"
+        label="First name"
+        name="firstname"
         autoComplete="given-name"
         autoFocus
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
       />
       <TextField
         margin="normal"
         required
         fullWidth
-        id="surname"
-        label="Surname"
-        name="surname"
+        id="lastname"
+        label="Last name"
+        name="lastname"
         autoComplete="family-name"
-        value={surname}
-        onChange={(e) => setSurname(e.target.value)}
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
       />
       <TextField
         margin="normal"
@@ -95,12 +100,7 @@ export default function RegisterForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        sx={{ mt: 3, mb: 2 }}
-      >
+      <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
         Sign Up
       </Button>
     </Box>
