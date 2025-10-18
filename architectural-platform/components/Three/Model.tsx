@@ -52,8 +52,8 @@ export default function Model({
         ref={modelRef}
         object={scene}
         scale={scale}
-        rotation={rotation}
         position={position}
+        // Rotation is now handled by the Inspector's animated group
       />
     </Inspector>
   ) : (

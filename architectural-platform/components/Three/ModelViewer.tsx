@@ -72,7 +72,6 @@ export default function ModelViewer({
   // Initialize state from initialConfig only once when component mounts
   React.useEffect(() => {
     if (!isInitializedRef.current) {
-      console.log("ModelViewer initializing with config:", initialConfig);
       setAmbientIntensity(initialConfig?.ambientIntensity ?? 0.5);
       setDirectionalIntensity(initialConfig?.directionalIntensity ?? 1);
       setLightColor(initialConfig?.lightColor ?? "#ffffff");
@@ -158,22 +157,24 @@ export default function ModelViewer({
     setShadows(!shadows);
   };
 
-  // Handle rotation changes from Inspector
-  const handleInspectorRotationChange = (newRotation: [number, number, number]) => {
-    // Convert from radians to degrees for the toolbar
+  // Handle rotation changes from Inspector (in radians)
+  const handleInspectorRotationChange = (
+    newRotationRadians: [number, number, number]
+  ) => {
+    // Convert radians to degrees for the toolbar and state
     const rotationInDegrees: [number, number, number] = [
-      (newRotation[0] * 180) / Math.PI,
-      (newRotation[1] * 180) / Math.PI,
-      (newRotation[2] * 180) / Math.PI,
+      THREE.MathUtils.radToDeg(newRotationRadians[0]),
+      THREE.MathUtils.radToDeg(newRotationRadians[1]),
+      THREE.MathUtils.radToDeg(newRotationRadians[2]),
     ];
     setRotation(rotationInDegrees);
   };
 
-  // Convert rotation from degrees to radians for the model
+  // Convert rotation from degrees (state) to radians for the model/inspector
   const rotationInRadians: [number, number, number] = [
-    (rotation[0] * Math.PI) / 180,
-    (rotation[1] * Math.PI) / 180,
-    (rotation[2] * Math.PI) / 180,
+    THREE.MathUtils.degToRad(rotation[0]),
+    THREE.MathUtils.degToRad(rotation[1]),
+    THREE.MathUtils.degToRad(rotation[2]),
   ];
 
   return (
