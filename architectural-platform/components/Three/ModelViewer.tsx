@@ -69,6 +69,11 @@ const ModelViewer: React.FC<IExAppProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const isMouseOverRef = useRef(false);
 
+  // Handle context menu prevention
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+  };
+
   // Handle mouse enter/leave to track when cursor is over container
   const handleMouseEnter = () => {
     isMouseOverRef.current = true;
@@ -107,11 +112,30 @@ const ModelViewer: React.FC<IExAppProps> = ({
       }
     };
 
-    // Add event listener to document with passive: false
+    // Handle right-click prevention for context menu
+    const handleMouseDown = (event: MouseEvent) => {
+      if (isMouseOverRef.current && event.button === 2) {
+        event.preventDefault();
+      }
+    };
+
+    // Handle context menu prevention
+    const handleContextMenu = (event: Event) => {
+      if (isMouseOverRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    // Add event listeners
     document.addEventListener("wheel", handleWheel, { passive: false });
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("contextmenu", handleContextMenu);
 
     return () => {
       document.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
     };
   }, [controls.scale, onConfigChange]);
 
@@ -258,6 +282,7 @@ const ModelViewer: React.FC<IExAppProps> = ({
       ref={containerRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onContextMenu={handleContextMenu}
       tabIndex={0} // Make it focusable
       style={{
         width: "100%",
@@ -275,6 +300,10 @@ const ModelViewer: React.FC<IExAppProps> = ({
         shadows
         camera={{ position: [5, 5, 5], fov: 50 }}
         resize={{ debounce: 100 }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
       >
         <Scene
           controls={controls}
