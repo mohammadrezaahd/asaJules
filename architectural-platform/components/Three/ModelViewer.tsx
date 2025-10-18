@@ -1,56 +1,18 @@
-'use client';
+"use client";
 
-import React, { Suspense, useRef, useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, PerspectiveCamera, OrthographicCamera } from '@react-three/drei';
-import ModelToolbar from './ModelToolbar';
-import LightingControls from './LightingControls';
-import { Box } from '@mui/material';
-import * as THREE from 'three';
-import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-
-interface ModelProps {
-  url: string;
-  scale: number;
-  rotation: [number, number, number];
-  position: [number, number, number];
-  materialMode: 'solid' | 'wireframe';
-  shadows: boolean;
-}
-
-function Model({ url, scale, rotation, position, materialMode, shadows }: ModelProps) {
-  const gltf = useGLTF(url);
-  const scene = Array.isArray(gltf) ? gltf[0].scene : gltf.scene;
-  const modelRef = useRef<THREE.Group>(null);
-
-  useEffect(() => {
-    scene.traverse((child: THREE.Object3D) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = shadows;
-        child.receiveShadow = shadows;
-        if (materialMode === 'wireframe') {
-          if (child.material instanceof THREE.Material) {
-            (child.material as THREE.MeshStandardMaterial).wireframe = true;
-          }
-        } else {
-            if (child.material instanceof THREE.Material) {
-                (child.material as THREE.MeshStandardMaterial).wireframe = false;
-            }
-        }
-      }
-    });
-  }, [scene, materialMode, shadows]);
-
-  return (
-    <primitive
-      ref={modelRef}
-      object={scene}
-      scale={scale}
-      rotation={rotation}
-      position={position}
-    />
-  );
-}
+import React, { Suspense, useRef, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import {
+  OrbitControls,
+  PerspectiveCamera,
+  OrthographicCamera,
+} from "@react-three/drei";
+import ModelToolbar from "./ModelToolbar";
+import LightingControls from "./LightingControls";
+import { Box } from "@mui/material";
+import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import Model from "./Model";
 
 interface ModelViewerConfig {
   ambientIntensity?: number;
@@ -60,9 +22,9 @@ interface ModelViewerConfig {
   rotation?: [number, number, number];
   position?: [number, number, number];
   backgroundColor?: string;
-  materialMode?: 'solid' | 'wireframe';
+  materialMode?: "solid" | "wireframe";
   shadows?: boolean;
-  cameraMode?: 'perspective' | 'orthographic';
+  cameraMode?: "perspective" | "orthographic";
 }
 
 interface ModelViewerProps {
@@ -73,7 +35,13 @@ interface ModelViewerProps {
   showToolbar?: boolean;
 }
 
-export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin = false, showToolbar }: ModelViewerProps) {
+export default function ModelViewer({
+  modelUrl,
+  initialConfig,
+  onSave,
+  isAdmin = false,
+  showToolbar,
+}: ModelViewerProps) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const perspectiveCameraRef = useRef<THREE.PerspectiveCamera>(null);
   const orthographicCameraRef = useRef<THREE.OrthographicCamera>(null);
@@ -88,29 +56,33 @@ export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin =
   // Toolbar state
   const [ambientIntensity, setAmbientIntensity] = useState(0.5);
   const [directionalIntensity, setDirectionalIntensity] = useState(1);
-  const [lightColor, setLightColor] = useState('#ffffff');
+  const [lightColor, setLightColor] = useState("#ffffff");
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
   const [position, setPosition] = useState<[number, number, number]>([0, 0, 0]);
-  const [backgroundColor, setBackgroundColor] = useState('#f0f0f0');
-  const [materialMode, setMaterialMode] = useState<'solid' | 'wireframe'>('solid');
+  const [backgroundColor, setBackgroundColor] = useState("#f0f0f0");
+  const [materialMode, setMaterialMode] = useState<"solid" | "wireframe">(
+    "solid"
+  );
   const [shadows, setShadows] = useState(true);
-  const [cameraMode, setCameraMode] = useState<'perspective' | 'orthographic'>('perspective');
+  const [cameraMode, setCameraMode] = useState<"perspective" | "orthographic">(
+    "perspective"
+  );
 
   // Initialize state from initialConfig only once when component mounts
   React.useEffect(() => {
     if (!isInitializedRef.current) {
-      console.log('ModelViewer initializing with config:', initialConfig);
+      console.log("ModelViewer initializing with config:", initialConfig);
       setAmbientIntensity(initialConfig?.ambientIntensity ?? 0.5);
       setDirectionalIntensity(initialConfig?.directionalIntensity ?? 1);
-      setLightColor(initialConfig?.lightColor ?? '#ffffff');
+      setLightColor(initialConfig?.lightColor ?? "#ffffff");
       setScale(initialConfig?.scale ?? 1);
       setRotation(initialConfig?.rotation ?? [0, 0, 0]);
       setPosition(initialConfig?.position ?? [0, 0, 0]);
-      setBackgroundColor(initialConfig?.backgroundColor ?? '#f0f0f0');
-      setMaterialMode(initialConfig?.materialMode ?? 'solid');
+      setBackgroundColor(initialConfig?.backgroundColor ?? "#f0f0f0");
+      setMaterialMode(initialConfig?.materialMode ?? "solid");
       setShadows(initialConfig?.shadows ?? true);
-      setCameraMode(initialConfig?.cameraMode ?? 'perspective');
+      setCameraMode(initialConfig?.cameraMode ?? "perspective");
       isInitializedRef.current = true;
     }
   }, [initialConfig]);
@@ -141,12 +113,23 @@ export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin =
     }, 150); // 150ms debounce - faster response
 
     return () => clearTimeout(timeoutId);
-  }, [ambientIntensity, directionalIntensity, lightColor, scale, rotation, position, backgroundColor, materialMode, shadows, cameraMode]);
+  }, [
+    ambientIntensity,
+    directionalIntensity,
+    lightColor,
+    scale,
+    rotation,
+    position,
+    backgroundColor,
+    materialMode,
+    shadows,
+    cameraMode,
+  ]);
 
   const resetLighting = () => {
     setAmbientIntensity(0.5);
     setDirectionalIntensity(1);
-    setLightColor('#ffffff');
+    setLightColor("#ffffff");
   };
 
   const resetTransform = () => {
@@ -166,18 +149,38 @@ export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin =
   };
 
   const toggleCameraMode = () => {
-    setCameraMode(cameraMode === 'perspective' ? 'orthographic' : 'perspective');
+    setCameraMode(
+      cameraMode === "perspective" ? "orthographic" : "perspective"
+    );
   };
 
   const toggleShadows = () => {
     setShadows(!shadows);
   };
 
+  // Handle rotation changes from Inspector
+  const handleInspectorRotationChange = (newRotation: [number, number, number]) => {
+    // Convert from radians to degrees for the toolbar
+    const rotationInDegrees: [number, number, number] = [
+      (newRotation[0] * 180) / Math.PI,
+      (newRotation[1] * 180) / Math.PI,
+      (newRotation[2] * 180) / Math.PI,
+    ];
+    setRotation(rotationInDegrees);
+  };
+
+  // Convert rotation from degrees to radians for the model
+  const rotationInRadians: [number, number, number] = [
+    (rotation[0] * Math.PI) / 180,
+    (rotation[1] * Math.PI) / 180,
+    (rotation[2] * Math.PI) / 180,
+  ];
+
   return (
     <Box>
       {(showToolbar ?? isAdmin) && (
         <ModelToolbar
-          mode={isAdmin ? 'full' : 'minimal'}
+          mode={isAdmin ? "full" : "minimal"}
           ambientIntensity={ambientIntensity}
           setAmbientIntensity={setAmbientIntensity}
           directionalIntensity={directionalIntensity}
@@ -207,12 +210,22 @@ export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin =
       <Canvas
         shadows={shadows}
         dpr={[1, 2]}
-        style={{ width: '100%', height: '500px', backgroundColor }}
+        style={{ width: "100%", height: "500px", backgroundColor }}
       >
-        {cameraMode === 'perspective' ? (
-          <PerspectiveCamera ref={perspectiveCameraRef} makeDefault fov={50} position={[5, 5, 5]} />
+        {cameraMode === "perspective" ? (
+          <PerspectiveCamera
+            ref={perspectiveCameraRef}
+            makeDefault
+            fov={50}
+            position={[5, 5, 5]}
+          />
         ) : (
-          <OrthographicCamera ref={orthographicCameraRef} makeDefault position={[5, 5, 5]} zoom={50} />
+          <OrthographicCamera
+            ref={orthographicCameraRef}
+            makeDefault
+            position={[5, 5, 5]}
+            zoom={50}
+          />
         )}
         <LightingControls
           ambientIntensity={ambientIntensity}
@@ -223,10 +236,12 @@ export default function ModelViewer({ modelUrl, initialConfig, onSave, isAdmin =
           <Model
             url={modelUrl}
             scale={scale}
-            rotation={rotation as [number, number, number]}
+            rotation={rotationInRadians}
             position={position as [number, number, number]}
             materialMode={materialMode}
             shadows={shadows}
+            enableInspector={showToolbar ?? isAdmin}
+            onRotationChange={handleInspectorRotationChange}
           />
         </Suspense>
         <OrbitControls ref={controlsRef} />
