@@ -11,7 +11,14 @@ interface ModelProps {
   materialMode: "solid" | "wireframe";
   shadows: boolean;
   enableInspector?: boolean;
-  onRotationChange?: (rotation: [number, number, number]) => void;
+  controls?: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+  };
+  setControls?: React.Dispatch<React.SetStateAction<{
+    position: [number, number, number];
+    rotation: [number, number, number];
+  }>>;
 }
 
 export default function Model({
@@ -22,7 +29,8 @@ export default function Model({
   materialMode,
   shadows,
   enableInspector = false,
-  onRotationChange,
+  controls,
+  setControls,
 }: ModelProps) {
   const gltf = useGLTF(url);
   const scene = Array.isArray(gltf) ? gltf[0].scene : gltf.scene;
@@ -46,14 +54,13 @@ export default function Model({
     });
   }, [scene, materialMode, shadows]);
 
-  return enableInspector ? (
-    <Inspector rotation={rotation} onRotationChange={onRotationChange}>
+  return enableInspector && controls && setControls ? (
+    <Inspector controls={controls} setControls={setControls}>
       <primitive
         ref={modelRef}
         object={scene}
         scale={scale}
-        position={position}
-        // Rotation is now handled by the Inspector's animated group
+        // Position and rotation are now handled by the Inspector's animated group
       />
     </Inspector>
   ) : (

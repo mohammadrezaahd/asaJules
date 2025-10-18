@@ -53,13 +53,17 @@ export default function ModelViewer({
     onSaveRef.current = onSave;
   }, [onSave]);
 
+  // Single controls state - exactly like Example
+  const [controls, setControls] = useState({
+    position: [0, 0, 0] as [number, number, number],
+    rotation: [0, 0, 0] as [number, number, number], // In radians
+  });
+
   // Toolbar state
   const [ambientIntensity, setAmbientIntensity] = useState(0.5);
   const [directionalIntensity, setDirectionalIntensity] = useState(1);
   const [lightColor, setLightColor] = useState("#ffffff");
   const [scale, setScale] = useState(1);
-  const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
-  const [position, setPosition] = useState<[number, number, number]>([0, 0, 0]);
   const [backgroundColor, setBackgroundColor] = useState("#f0f0f0");
   const [materialMode, setMaterialMode] = useState<"solid" | "wireframe">(
     "solid"
@@ -76,8 +80,16 @@ export default function ModelViewer({
       setDirectionalIntensity(initialConfig?.directionalIntensity ?? 1);
       setLightColor(initialConfig?.lightColor ?? "#ffffff");
       setScale(initialConfig?.scale ?? 1);
-      setRotation(initialConfig?.rotation ?? [0, 0, 0]);
-      setPosition(initialConfig?.position ?? [0, 0, 0]);
+      
+      // Initialize controls - convert degrees to radians for rotation
+      const initRotation = initialConfig?.rotation ?? [0, 0, 0];
+      const initPosition = initialConfig?.position ?? [0, 0, 0];
+      
+      setControls({
+        position: initPosition,
+        rotation: initRotation.map(deg => THREE.MathUtils.degToRad(deg)) as [number, number, number],
+      });
+      
       setBackgroundColor(initialConfig?.backgroundColor ?? "#f0f0f0");
       setMaterialMode(initialConfig?.materialMode ?? "solid");
       setShadows(initialConfig?.shadows ?? true);
@@ -96,13 +108,16 @@ export default function ModelViewer({
 
     const timeoutId = setTimeout(() => {
       if (onSaveRef.current) {
+        // Convert rotation back to degrees for save
+        const rotationInDegrees = controls.rotation.map(rad => THREE.MathUtils.radToDeg(rad)) as [number, number, number];
+        
         onSaveRef.current({
           ambientIntensity,
           directionalIntensity,
           lightColor,
           scale,
-          rotation: rotation as [number, number, number],
-          position: position as [number, number, number],
+          rotation: rotationInDegrees,
+          position: controls.position,
           backgroundColor,
           materialMode,
           shadows,
@@ -117,13 +132,15 @@ export default function ModelViewer({
     directionalIntensity,
     lightColor,
     scale,
-    rotation,
-    position,
+    controls.rotation,
+    controls.position,
     backgroundColor,
     materialMode,
     shadows,
     cameraMode,
   ]);
+
+
 
   const resetLighting = () => {
     setAmbientIntensity(0.5);
@@ -133,8 +150,10 @@ export default function ModelViewer({
 
   const resetTransform = () => {
     setScale(1);
-    setRotation([0, 0, 0]);
-    setPosition([0, 0, 0]);
+    setControls({
+      position: [0, 0, 0],
+      rotation: [0, 0, 0], // radians
+    });
   };
 
   const resetCamera = () => {
@@ -157,26 +176,6 @@ export default function ModelViewer({
     setShadows(!shadows);
   };
 
-  // Handle rotation changes from Inspector (in radians)
-  const handleInspectorRotationChange = (
-    newRotationRadians: [number, number, number]
-  ) => {
-    // Convert radians to degrees for the toolbar and state
-    const rotationInDegrees: [number, number, number] = [
-      THREE.MathUtils.radToDeg(newRotationRadians[0]),
-      THREE.MathUtils.radToDeg(newRotationRadians[1]),
-      THREE.MathUtils.radToDeg(newRotationRadians[2]),
-    ];
-    setRotation(rotationInDegrees);
-  };
-
-  // Convert rotation from degrees (state) to radians for the model/inspector
-  const rotationInRadians: [number, number, number] = [
-    THREE.MathUtils.degToRad(rotation[0]),
-    THREE.MathUtils.degToRad(rotation[1]),
-    THREE.MathUtils.degToRad(rotation[2]),
-  ];
-
   return (
     <Box>
       {(showToolbar ?? isAdmin) && (
@@ -191,10 +190,21 @@ export default function ModelViewer({
           resetLighting={resetLighting}
           scale={scale}
           setScale={setScale}
-          rotation={rotation as [number, number, number]}
-          setRotation={setRotation}
-          position={position as [number, number, number]}
-          setPosition={setPosition}
+          rotation={controls.rotation.map(rad => THREE.MathUtils.radToDeg(rad)) as [number, number, number]}
+          setRotation={(newRotationDegrees) => {
+            const rotationInRadians = newRotationDegrees.map(deg => THREE.MathUtils.degToRad(deg)) as [number, number, number];
+            setControls(prev => ({
+              ...prev,
+              rotation: rotationInRadians,
+            }));
+          }}
+          position={controls.position}
+          setPosition={(newPosition) => {
+            setControls(prev => ({
+              ...prev,
+              position: newPosition,
+            }));
+          }}
           resetTransform={resetTransform}
           backgroundColor={backgroundColor}
           setBackgroundColor={setBackgroundColor}
@@ -237,12 +247,13 @@ export default function ModelViewer({
           <Model
             url={modelUrl}
             scale={scale}
-            rotation={rotationInRadians}
-            position={position as [number, number, number]}
+            rotation={controls.rotation}
+            position={controls.position}
             materialMode={materialMode}
             shadows={shadows}
             enableInspector={showToolbar ?? isAdmin}
-            onRotationChange={handleInspectorRotationChange}
+            controls={controls}
+            setControls={setControls}
           />
         </Suspense>
         <OrbitControls ref={controlsRef} />

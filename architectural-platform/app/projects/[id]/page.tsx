@@ -1,12 +1,22 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Container, Typography, Card, CardMedia, CircularProgress, Alert } from '@mui/material';
-import { useParams } from 'next/navigation';
-import Image from 'next/image';
-import ModelViewer from '@/components/Three/ModelViewer';
-import { projectsApi } from '@/components/api';
-import { Project } from '@/types';
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Button,
+  Container,
+  Typography,
+  Card,
+  CardMedia,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
+import { useParams } from "next/navigation";
+import Image from "next/image";
+import ModelViewer from "@/components/Three/ModelViewer";
+import { projectsApi } from "@/components/api";
+import { Project } from "@/types";
+import ExampleApp from "@/components/Three/Example/App";
 
 export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -26,7 +36,8 @@ export default function ProjectDetailPage() {
           setProject(fetchedProject.data);
         }
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch project';
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch project";
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -39,7 +50,10 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 8, display: 'flex', justifyContent: 'center' }}>
+      <Container
+        maxWidth="lg"
+        sx={{ py: 8, display: "flex", justifyContent: "center" }}
+      >
         <CircularProgress />
       </Container>
     );
@@ -67,12 +81,14 @@ export default function ProjectDetailPage() {
         {project.title}
       </Typography>
       {project.thumbnail && (
-        <Box sx={{ position: 'relative', width: '100%', height: '400px', mb: 4 }}>
-          <Image 
-            src={project.thumbnail} 
-            alt={project.title} 
+        <Box
+          sx={{ position: "relative", width: "100%", height: "400px", mb: 4 }}
+        >
+          <Image
+            src={project.thumbnail}
+            alt={project.title}
             fill
-            style={{ objectFit: 'cover' }}
+            style={{ objectFit: "cover" }}
           />
         </Box>
       )}
@@ -82,17 +98,24 @@ export default function ProjectDetailPage() {
       <Typography variant="h5" component="h3" gutterBottom sx={{ mt: 4 }}>
         Gallery
       </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 2 }}>
-        {project.gallery && project.gallery.map((imageUrl: string, index: number) => (
-          <Card key={index}>
-            <CardMedia
-              component="img"
-              height="200"
-              image={imageUrl}
-              alt={`Gallery image ${index + 1}`}
-            />
-          </Card>
-        ))}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+          gap: 2,
+        }}
+      >
+        {project.gallery &&
+          project.gallery.map((imageUrl: string, index: number) => (
+            <Card key={index}>
+              <CardMedia
+                component="img"
+                height="200"
+                image={imageUrl}
+                alt={`Gallery image ${index + 1}`}
+              />
+            </Card>
+          ))}
       </Box>
       <Typography variant="h5" component="h3" gutterBottom sx={{ mt: 4 }}>
         Contributors
@@ -108,12 +131,17 @@ export default function ProjectDetailPage() {
       ) : (
         <Typography>No contributors listed.</Typography>
       )}
-      <Button variant="contained" color="primary" sx={{ mt: 4 }} onClick={() => setShowModelViewer(true)}>
+      <Button
+        variant="contained"
+        color="primary"
+        sx={{ mt: 4 }}
+        onClick={() => setShowModelViewer(true)}
+      >
         Open 3D Model
       </Button>
       {showModelViewer && project.modelUrl && (
         <Box sx={{ mt: 4 }}>
-          <ModelViewer
+          {/* <ModelViewer
             modelUrl={project.modelUrl}
             initialConfig={{
               ambientIntensity: project.modelConfig?.lighting?.ambient ?? 0.5,
@@ -130,7 +158,8 @@ export default function ProjectDetailPage() {
             onSave={() => {}} // Empty function for view-only mode
             isAdmin={false} // Always false for public view
             showToolbar={true} // Show minimal toolbar
-          />
+          /> */}
+          <ExampleApp />
         </Box>
       )}
     </Container>

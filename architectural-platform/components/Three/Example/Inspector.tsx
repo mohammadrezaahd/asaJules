@@ -3,19 +3,7 @@ import { useThree } from "@react-three/fiber";
 import React, { useEffect, useMemo } from "react";
 import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
-
-interface InspectorProps {
-  responsiveness?: number;
-  children: React.ReactNode;
-  controls: {
-    position: [number, number, number];
-    rotation: [number, number, number];
-  };
-  setControls: React.Dispatch<React.SetStateAction<{
-    position: [number, number, number];
-    rotation: [number, number, number];
-  }>>;
-}
+import { InspectorProps } from "./types";
 
 export default function Inspector({
   responsiveness = 20,
@@ -45,7 +33,7 @@ export default function Inspector({
     if (buttons === 2) {
       // Right mouse button - Position control
       const positionSensitivity = 0.01;
-      const newPosition = [...controls.position] as [number, number, number];
+      const newPosition: [number, number, number] = [...controls.position];
       newPosition[0] += dx * positionSensitivity;
       newPosition[1] -= dy * positionSensitivity; // Invert Y for natural feel
 
@@ -59,7 +47,7 @@ export default function Inspector({
       euler.y += (dx / size.width) * responsiveness;
       euler.x += (dy / size.width) * responsiveness;
       euler.x = THREE.MathUtils.clamp(euler.x, -Math.PI / 2, Math.PI / 2);
-      const newRotation = euler.toArray().slice(0, 3) as [number, number, number];
+      const newRotation: [number, number, number] = [euler.x, euler.y, euler.z];
 
       set({ rotation: newRotation });
       setControls((prev) => ({
@@ -70,9 +58,9 @@ export default function Inspector({
   });
 
   return (
-    <a.group 
-      {...bind()} 
-      position={spring.position as unknown as [number, number, number]}
+    <a.group
+      {...bind()}
+      position={spring.position}
       rotation={spring.rotation as unknown as [number, number, number]}
     >
       {children}
