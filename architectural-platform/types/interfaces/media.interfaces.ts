@@ -42,3 +42,31 @@ export interface MediaPaginationInfo {
   currentPage: number;
   itemsPerPage: number;
 }
+
+export interface DeleteMediaResponse {
+  message: string;
+  deletedMedia: {
+    id: string;
+    filename: string;
+    filepath: string;
+  };
+}
+
+export interface BulkDeleteMediaResponse {
+  message: string;
+  deletedItems: Array<{
+    id: string;
+    filename: string;
+    filepath: string;
+  }>;
+  failedDeletions: Array<{
+    id: string;
+    filename: string;
+    error: string;
+  }>;
+  summary: {
+    total: number;
+    deleted: number;
+    failed: number;
+  };
+}

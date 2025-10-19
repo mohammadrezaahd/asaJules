@@ -1,5 +1,5 @@
 import axiosInstance from "./axios.config";
-import { MediaFile, UploadResponse, MediaQueryParams, MediaFilterType } from "@/types";
+import { MediaFile, UploadResponse, MediaQueryParams, MediaFilterType, DeleteMediaResponse, BulkDeleteMediaResponse } from "@/types";
 import { ApiResponse, ListApiResponse } from "@/types";
 import { apiUtils } from "./apiUtils";
 
@@ -78,9 +78,27 @@ export const mediaApi = {
     });
   },
 
-  async delete(id: string): Promise<ApiResponse<{ success: boolean }>> {
-    return apiUtils<{ success: boolean }>(() => 
+  async getById(id: string): Promise<ApiResponse<MediaFile>> {
+    return apiUtils<MediaFile>(() => 
+      axiosInstance.get(`/media/${id}`).then(res => res.data)
+    );
+  },
+
+  async delete(id: string): Promise<ApiResponse<DeleteMediaResponse>> {
+    return apiUtils<DeleteMediaResponse>(() => 
       axiosInstance.delete(`/media/${id}`).then(res => res.data)
+    );
+  },
+
+  async deleteMultiple(ids: string[]): Promise<ApiResponse<BulkDeleteMediaResponse>> {
+    return apiUtils<BulkDeleteMediaResponse>(() => 
+      axiosInstance.delete('/media', { data: { ids } }).then(res => res.data)
+    );
+  },
+
+  async updateMetadata(id: string, data: { filename?: string }): Promise<ApiResponse<MediaFile>> {
+    return apiUtils<MediaFile>(() => 
+      axiosInstance.patch(`/media/${id}`, data).then(res => res.data)
     );
   },
 
