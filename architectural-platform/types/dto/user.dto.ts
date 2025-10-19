@@ -4,7 +4,7 @@ export interface CreateUserDto {
   username: string;
   email: string;
   password?: string; // Optional for OAuth
-  avatar?: string;
+  avatarUrl?: string;
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {

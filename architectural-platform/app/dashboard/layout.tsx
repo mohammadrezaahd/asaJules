@@ -15,23 +15,18 @@ import {
   Tooltip,
 } from "@mui/material";
 import {
+  Group,
   Inbox as InboxIcon,
   Mail as MailIcon,
   Menu as MenuIcon,
+  Person2,
   PhotoLibrary as PhotoLibraryIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
-
-const dashboardLinks = [
-  { text: "Users", href: "/dashboard/users", icon: <InboxIcon /> },
-  { text: "Projects", href: "/dashboard/projects", icon: <MailIcon /> },
-  { text: "Articles", href: "/dashboard/articles", icon: <InboxIcon /> },
-  { text: "Categories", href: "/dashboard/categories", icon: <MailIcon /> },
-  { text: "Media", href: "/dashboard/media", icon: <PhotoLibraryIcon /> },
-];
 
 export default function DashboardLayout({
   children,
@@ -39,6 +34,16 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { data: session } = useSession();
+
+  const dashboardLinks = [
+    { text: "Profile", href: `/dashboard/profile/${session?.user?.id || ''}`, icon: <Person2 /> },
+    { text: "Users", href: "/dashboard/users", icon: <Group /> },
+    { text: "Projects", href: "/dashboard/projects", icon: <MailIcon /> },
+    { text: "Articles", href: "/dashboard/articles", icon: <InboxIcon /> },
+    { text: "Categories", href: "/dashboard/categories", icon: <MailIcon /> },
+    { text: "Media", href: "/dashboard/media", icon: <PhotoLibraryIcon /> },
+  ];
 
   const handleToggle = () => {
     setIsCollapsed(!isCollapsed);
