@@ -30,25 +30,51 @@ export async function apiUtils<T>(
  */
 export async function apiListUtils<T>(
   apiCall: () => Promise<{
-    totalPages: number;
-    currentPage: number;
+    isSuccess?: boolean;
+    data?: T[];
+    pagination?: {
+      totalPages: number;
+      currentPage: number;
+      totalItems?: number;
+      itemsPerPage?: number;
+      total?: number;
+    };
+    // Legacy format support
+    totalPages?: number;
+    currentPage?: number;
     total?: number;
-    [key: string]: T[] | number | undefined;
+    [key: string]: T[] | number | boolean | object | undefined;
   }>
 ): Promise<ListApiResponse<T>> {
   try {
     const response = await apiCall();
     
-    // Extract the array data (could be articles, projects, categories, etc.)
+    // Handle new format with isSuccess, data, and pagination
+    if (response.isSuccess !== undefined) {
+      return {
+        isSuccess: response.isSuccess,
+        data: response.data || [],
+        pagination: {
+          totalPages: response.pagination?.totalPages || 1,
+          currentPage: response.pagination?.currentPage || 1,
+          total: response.pagination?.total || response.pagination?.totalItems || 0,
+          totalItems: response.pagination?.totalItems || response.pagination?.total || 0,
+          itemsPerPage: response.pagination?.itemsPerPage || 10,
+        },
+      };
+    }
+    
+    // Handle legacy format - extract array data and pagination
     const dataKey = Object.keys(response).find(key => 
       Array.isArray(response[key]) && key !== 'totalPages' && key !== 'currentPage'
     );
     
     const data = (dataKey ? response[dataKey] : []) as T[];
     const pagination: PaginationInfo = {
-      totalPages: response.totalPages,
-      currentPage: response.currentPage,
-      total: response.total,
+      totalPages: response.totalPages || 1,
+      currentPage: response.currentPage || 1,
+      total: response.total || 0,
+      totalItems: response.total || 0,
     };
 
     return {
@@ -65,6 +91,8 @@ export async function apiListUtils<T>(
       pagination: {
         totalPages: 0,
         currentPage: 1,
+        total: 0,
+        totalItems: 0,
       },
     };
   }

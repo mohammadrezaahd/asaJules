@@ -10,27 +10,50 @@ import mongoose from 'mongoose';
 interface ProjectQuery {
   status?: 'Draft' | 'Published';
   categories?: string | mongoose.Types.ObjectId | { $in: (string | mongoose.Types.ObjectId)[] };
-  tags?: { $in: string[] };
+  tags?: { $in: string[] | RegExp[] };
+  $or?: Array<{
+    title?: RegExp;
+    description?: RegExp;
+    tags?: { $in: RegExp[] };
+  }>;
 }
 
 export async function GET(req: Request) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const limit = parseInt(searchParams.get('limit') || '12', 10);
   const category = searchParams.get('category');
+  const search = searchParams.get('search');
+  const status = searchParams.get('status') as 'Draft' | 'Published' | null;
   const tags = searchParams.get('tags')?.split(',').filter(tag => tag.trim() !== '');
 
-  const query: ProjectQuery = { status: 'Published' };
+  const query: ProjectQuery = {};
   
-  // Only add categories to query if it's provided and not empty
+  // Only filter by status if explicitly provided
+  if (status) {
+    query.status = status;
+  }
+  // If no status is provided, show all projects (both Draft and Published)
+  
+  // Add category filter if provided
   if (category && category.trim() !== '') {
     query.categories = category;
   }
   
-  // Only add tags to query if tags array exists and has content
+  // Add tags filter if provided
   if (tags && tags.length > 0) {
     query.tags = { $in: tags };
+  }
+  
+  // Add search functionality
+  if (search && search.trim() !== '') {
+    const searchRegex = new RegExp(search.trim(), 'i');
+    query.$or = [
+      { title: searchRegex },
+      { description: searchRegex },
+      { tags: { $in: [searchRegex] } }
+    ];
   }
 
   try {
@@ -44,13 +67,21 @@ export async function GET(req: Request) {
     const total = await Project.countDocuments(query);
 
     return NextResponse.json({
-      projects,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      isSuccess: true,
+      data: projects,
+      pagination: {
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        totalItems: total,
+        itemsPerPage: limit,
+      }
     });
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      isSuccess: false,
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
 

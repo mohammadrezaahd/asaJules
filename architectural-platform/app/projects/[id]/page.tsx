@@ -13,10 +13,9 @@ import {
 } from "@mui/material";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import ModelViewer from "@/components/Three/ModelViewer";
 import { projectsApi } from "@/components/api";
 import { Project } from "@/types";
-import ExampleApp from "@/components/Three/Example/App";
+import { ModelViewer } from "@/components/Three";
 
 export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
@@ -141,25 +140,26 @@ export default function ProjectDetailPage() {
       </Button>
       {showModelViewer && project.modelUrl && (
         <Box sx={{ mt: 4 }}>
-          {/* <ModelViewer
+          <ModelViewer
             modelUrl={project.modelUrl}
             initialConfig={{
-              ambientIntensity: project.modelConfig?.lighting?.ambient ?? 0.5,
-              directionalIntensity: project.modelConfig?.lighting?.directional ?? 1,
-              lightColor: project.modelConfig?.lighting?.color ?? '#ffffff',
-              scale: Array.isArray(project.modelConfig?.scale) ? project.modelConfig.scale[0] ?? 1 : (typeof project.modelConfig?.scale === 'number' ? project.modelConfig.scale : 1),
-              rotation: project.modelConfig?.rotation ?? [0, 0, 0],
               position: project.modelConfig?.position ?? [0, 0, 0],
-              backgroundColor: project.modelConfig?.backgroundColor ?? '#f0f0f0',
-              materialMode: project.modelConfig?.materialMode ?? 'solid',
+              rotation: project.modelConfig?.rotation ?? [0, 0, 0],
+              scale: Array.isArray(project.modelConfig?.scale)
+                ? project.modelConfig.scale[0] ?? 1
+                : 1,
+              ambientIntensity: project.modelConfig?.lighting?.ambient ?? 0.5,
+              directionalIntensity:
+                project.modelConfig?.lighting?.directional ?? 1,
+              lightColor: project.modelConfig?.lighting?.color ?? "#ffffff",
+              backgroundColor:
+                project.modelConfig?.backgroundColor ?? "#f0f0f0",
+              materialMode: project.modelConfig?.materialMode ?? "solid",
               shadows: project.modelConfig?.shadows ?? true,
-              cameraMode: project.modelConfig?.cameraMode ?? 'perspective'
+              cameraMode: project.modelConfig?.cameraMode ?? "perspective",
             }}
-            onSave={() => {}} // Empty function for view-only mode
             isAdmin={false} // Always false for public view
-            showToolbar={true} // Show minimal toolbar
-          /> */}
-          <ExampleApp />
+          />
         </Box>
       )}
     </Container>

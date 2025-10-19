@@ -22,7 +22,7 @@ import { mediaApi } from "@/components/api";
 import FileUpload from "./FileUpload";
 import MediaFilters from "./MediaFilters";
 import MediaGrid from "./MediaGrid";
-import MediaPagination from "./MediaPagination";
+import PaginationControls from "../Common/PaginationControls";
 
 interface MediaManagerProps {
   // Modal mode props
@@ -30,10 +30,10 @@ interface MediaManagerProps {
   onClose?: () => void;
   onSelect?: (selectedMedia: MediaFile[]) => void;
   multiple?: boolean;
-  mediaType?: 'images' | 'models' | 'all';
+  mediaType?: "images" | "models" | "all";
   title?: string;
-  
-  // Page mode props  
+
+  // Page mode props
   allowedType?: "models" | "images" | "all";
   showUpload?: boolean;
 }
@@ -44,17 +44,17 @@ const MediaManager: React.FC<MediaManagerProps> = ({
   onClose,
   onSelect,
   multiple = false,
-  mediaType = 'all',
+  mediaType = "all",
   title = "Media Library",
-  
+
   // Page mode
   allowedType,
   showUpload = true,
 }) => {
   // Determine if we're in modal mode or page mode
   const isModalMode = open !== undefined;
-  const finalMediaType = isModalMode ? mediaType : (allowedType || 'all');
-  
+  const finalMediaType = isModalMode ? mediaType : allowedType || "all";
+
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -68,17 +68,22 @@ const MediaManager: React.FC<MediaManagerProps> = ({
 
   // Update filters when mediaType changes
   useEffect(() => {
-    console.log('MediaType changed to:', finalMediaType);
-    setFilters(prev => ({
+    console.log("MediaType changed to:", finalMediaType);
+    setFilters((prev) => ({
       ...prev,
       type: finalMediaType,
-      page: 1 // Reset to first page when type changes
+      page: 1, // Reset to first page when type changes
     }));
   }, [finalMediaType]);
 
   // Clear selected media when modal opens/closes or target changes
   useEffect(() => {
-    console.log('Clearing selected media, open:', open, 'mediaType:', mediaType);
+    console.log(
+      "Clearing selected media, open:",
+      open,
+      "mediaType:",
+      mediaType
+    );
     setSelectedMedia([]);
   }, [open, mediaType]);
 
@@ -158,11 +163,15 @@ const MediaManager: React.FC<MediaManagerProps> = ({
   const handleMediaClick = (mediaFile: MediaFile) => {
     if (isModalMode && onSelect) {
       if (multiple) {
-        const isSelected = selectedMedia.some(item => item._id === mediaFile._id);
+        const isSelected = selectedMedia.some(
+          (item) => item._id === mediaFile._id
+        );
         if (isSelected) {
-          setSelectedMedia(prev => prev.filter(item => item._id !== mediaFile._id));
+          setSelectedMedia((prev) =>
+            prev.filter((item) => item._id !== mediaFile._id)
+          );
         } else {
-          setSelectedMedia(prev => [...prev, mediaFile]);
+          setSelectedMedia((prev) => [...prev, mediaFile]);
         }
       } else {
         onSelect([mediaFile]);
@@ -188,9 +197,9 @@ const MediaManager: React.FC<MediaManagerProps> = ({
       )}
 
       {/* File Upload */}
-      {showUpload && !isModalMode && (
+      {showUpload && (
         <FileUpload
-          allowedType={finalMediaType === 'all' ? undefined : finalMediaType}
+          allowedType={finalMediaType === "all" ? undefined : finalMediaType}
           onUploadSuccess={handleUploadSuccess}
           onUploadError={handleUploadError}
         />
@@ -222,12 +231,13 @@ const MediaManager: React.FC<MediaManagerProps> = ({
       )}
 
       {/* Pagination */}
-      <MediaPagination
+      <PaginationControls
         pagination={pagination}
         currentPage={filters.page || 1}
         itemsPerPage={filters.limit || 12}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
+        itemLabel="media files"
       />
     </>
   );
@@ -236,25 +246,34 @@ const MediaManager: React.FC<MediaManagerProps> = ({
   if (isModalMode) {
     return (
       <Dialog open={open || false} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           {title}
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        
-        <DialogContent>
-          {renderContent()}
-        </DialogContent>
-        
-        <DialogActions sx={{ justifyContent: 'space-between', p: 3 }}>
+
+        <DialogContent>{renderContent()}</DialogContent>
+
+        <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>
           <Box>
             {multiple && (
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={selectedMedia.length === media.length && media.length > 0}
-                    indeterminate={selectedMedia.length > 0 && selectedMedia.length < media.length}
+                    checked={
+                      selectedMedia.length === media.length && media.length > 0
+                    }
+                    indeterminate={
+                      selectedMedia.length > 0 &&
+                      selectedMedia.length < media.length
+                    }
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedMedia([...media]);
@@ -268,17 +287,20 @@ const MediaManager: React.FC<MediaManagerProps> = ({
               />
             )}
           </Box>
-          
+
           <Box>
             <Button onClick={onClose} sx={{ mr: 1 }}>
               Cancel
             </Button>
-            <Button 
-              variant="contained" 
+            <Button
+              variant="contained"
               onClick={handleSelectButtonClick}
               disabled={selectedMedia.length === 0}
             >
-              Select {multiple && selectedMedia.length > 0 ? `(${selectedMedia.length})` : ''}
+              Select{" "}
+              {multiple && selectedMedia.length > 0
+                ? `(${selectedMedia.length})`
+                : ""}
             </Button>
           </Box>
         </DialogActions>

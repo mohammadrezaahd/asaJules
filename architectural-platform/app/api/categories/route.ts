@@ -57,12 +57,29 @@ export async function GET(req: Request) {
     
     console.log('Categories fetched:', Array.isArray(categories) ? categories.length : 'tree structure');
     
-    return NextResponse.json({ 
-      categories,
-      totalPages: flat ? Math.ceil(total / limit) : 1,
-      currentPage: flat ? page : 1,
-      total
-    });
+    if (flat) {
+      return NextResponse.json({ 
+        isSuccess: true,
+        data: categories,
+        pagination: {
+          totalPages: Math.ceil(total / limit),
+          currentPage: page,
+          totalItems: total,
+          itemsPerPage: limit,
+        }
+      });
+    } else {
+      return NextResponse.json({ 
+        isSuccess: true,
+        data: categories,
+        pagination: {
+          totalPages: 1,
+          currentPage: 1,
+          totalItems: total,
+          itemsPerPage: total,
+        }
+      });
+    }
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json({ 
