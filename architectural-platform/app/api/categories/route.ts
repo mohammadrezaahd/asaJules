@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import dbConnect from '@/lib/db';
 import '@/lib/models'; // Import all models to register them
 import { Category } from '@/lib/models';
@@ -179,5 +180,100 @@ export async function POST(req: Request) {
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+// DELETE multiple categories
+export async function DELETE(req: NextRequest) {
+  try {
+    // Check authentication and authorization
+    const token = await getToken({ req });
+    if (!token || token.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+    
+    const body = await req.json();
+    const { ids } = body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: "Category IDs array is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find all categories to be deleted
+    const categories = await Category.find({ _id: { $in: ids } });
+    
+    if (categories.length === 0) {
+      return NextResponse.json(
+        { error: "No categories found with provided IDs" },
+        { status: 404 }
+      );
+    }
+
+    const deletedItems = [];
+    const failedDeletions = [];
+
+    // Delete each category
+    for (const category of categories) {
+      try {
+        // Check if category has children
+        const hasChildren = await Category.countDocuments({ parent: category._id });
+        if (hasChildren > 0) {
+          failedDeletions.push({
+            id: category._id,
+            name: category.name,
+            error: "Category has child categories"
+          });
+          continue;
+        }
+
+        // Remove from parent's children array if it has a parent
+        if (category.parent) {
+          await Category.findByIdAndUpdate(category.parent, {
+            $pull: { children: category._id }
+          });
+        }
+
+        await Category.findByIdAndDelete(category._id);
+        
+        deletedItems.push({
+          id: category._id,
+          name: category.name,
+          slug: category.slug
+        });
+      } catch (error) {
+        console.error(`Error deleting category ${category._id}:`, error);
+        failedDeletions.push({
+          id: category._id,
+          name: category.name,
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+    
+    return NextResponse.json({
+      message: `Successfully deleted ${deletedItems.length} categories`,
+      deletedItems,
+      failedDeletions,
+      summary: {
+        total: categories.length,
+        deleted: deletedItems.length,
+        failed: failedDeletions.length
+      }
+    }, { status: 200 });
+    
+  } catch (error) {
+    console.error("Error in bulk delete categories:", error);
+    return NextResponse.json(
+      { error: "Server error while deleting categories" },
+      { status: 500 }
+    );
   }
 }

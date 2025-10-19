@@ -29,9 +29,22 @@ export const articlesApi = {
     );
   },
 
-  async delete(id: string): Promise<ApiResponse<{ success: boolean }>> {
-    return apiUtils<{ success: boolean }>(() => 
+  async delete(id: string): Promise<ApiResponse<{ 
+    message: string;
+  }>> {
+    return apiUtils(() => 
       axiosInstance.delete(`/articles/${id}`).then(res => res.data)
+    );
+  },
+
+  async deleteMultiple(ids: string[]): Promise<ApiResponse<{
+    message: string;
+    deletedItems: Array<{ id: string; title: string; slug: string }>;
+    failedDeletions: Array<{ id: string; title: string; error: string }>;
+    summary: { total: number; deleted: number; failed: number };
+  }>> {
+    return apiUtils(() => 
+      axiosInstance.delete('/articles', { data: { ids } }).then(res => res.data)
     );
   },
 

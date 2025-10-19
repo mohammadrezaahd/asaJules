@@ -34,9 +34,22 @@ export const projectsApi = {
     );
   },
 
-  async delete(id: string): Promise<ApiResponse<{ success: boolean }>> {
-    return apiUtils<{ success: boolean }>(() => 
+  async delete(id: string): Promise<ApiResponse<{ 
+    message: string;
+  }>> {
+    return apiUtils(() => 
       axiosInstance.delete(`/projects/${id}`).then(res => res.data)
+    );
+  },
+
+  async deleteMultiple(ids: string[]): Promise<ApiResponse<{
+    message: string;
+    deletedItems: Array<{ id: string; title: string; status: string }>;
+    failedDeletions: Array<{ id: string; title: string; error: string }>;
+    summary: { total: number; deleted: number; failed: number };
+  }>> {
+    return apiUtils(() => 
+      axiosInstance.delete('/projects', { data: { ids } }).then(res => res.data)
     );
   },
 

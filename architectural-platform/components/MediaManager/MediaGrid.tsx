@@ -25,7 +25,6 @@ interface MediaGridProps {
   onSelect?: (media: MediaFile) => void;
   loading?: boolean;
   selectedMedia?: MediaFile[];
-  showBulkSelection?: boolean;
 }
 
 const MediaGrid: React.FC<MediaGridProps> = ({
@@ -34,7 +33,6 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   onSelect,
   loading = false,
   selectedMedia = [],
-  showBulkSelection = false,
 }) => {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";

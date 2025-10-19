@@ -59,4 +59,15 @@ export const categoriesApi = {
       };
     }
   },
+
+  async deleteMultiple(ids: string[]): Promise<ApiResponse<{
+    message: string;
+    deletedItems: Array<{ id: string; name: string; slug: string }>;
+    failedDeletions: Array<{ id: string; name: string; error: string }>;
+    summary: { total: number; deleted: number; failed: number };
+  }>> {
+    return apiUtils(() => 
+      axiosInstance.delete('/categories', { data: { ids } }).then(res => res.data)
+    );
+  },
 };

@@ -15,15 +15,18 @@ import {
   IconButton,
   Checkbox,
   FormControlLabel,
-  Tooltip,
 } from "@mui/material";
-import { Close as CloseIcon, Delete as DeleteIcon, SelectAll as SelectAllIcon } from "@mui/icons-material";
+import {
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import { MediaFile, MediaQueryParams } from "@/types";
 import { mediaApi } from "@/components/api";
 import FileUpload from "./FileUpload";
 import MediaFilters from "./MediaFilters";
 import MediaGrid from "./MediaGrid";
 import PaginationControls from "../Common/PaginationControls";
+import BulkSelectionControls from "../Common/BulkSelectionControls";
+import useBulkSelection from "../Common/useBulkSelection";
 
 interface MediaManagerProps {
   // Modal mode props
@@ -60,13 +63,18 @@ const MediaManager: React.FC<MediaManagerProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
-  const [selectedForDeletion, setSelectedForDeletion] = useState<MediaFile[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState<MediaQueryParams>({
     page: 1,
     limit: 12,
     search: "",
     type: finalMediaType,
+  });
+
+  // Bulk selection for page mode (deletion)
+  const bulkSelection = useBulkSelection({
+    items: media,
+    getItemId: (mediaFile) => mediaFile._id,
   });
 
   // Update filters when mediaType changes
@@ -163,57 +171,36 @@ const MediaManager: React.FC<MediaManagerProps> = ({
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedForDeletion.length === 0) return;
-    
-    const confirmMessage = `Are you sure you want to delete ${selectedForDeletion.length} file(s)? This action cannot be undone.`;
-    if (!confirm(confirmMessage)) return;
+  const handleBulkDelete = async (selectedMediaFiles: MediaFile[]) => {
+    const ids = selectedMediaFiles.map((mediaFile) => mediaFile._id);
 
     try {
-      const ids = selectedForDeletion.map(item => item._id);
+      setIsDeleting(true);
       const result = await mediaApi.deleteMultiple(ids);
-      
+
       if (result.isSuccess && result.data) {
         const { summary, failedDeletions } = result.data;
-        
-        // Show success message
-        let message = `Successfully deleted ${summary.deleted} file(s)`;
-        if (summary.failed > 0) {
-          message += `, but ${summary.failed} file(s) failed to delete`;
-        }
-        
-        // Show detailed errors if any
+
         if (failedDeletions.length > 0) {
-          const errorDetails = failedDeletions.map((f: { filename: string; error: string }) => `${f.filename}: ${f.error}`).join('\n');
-          setError(`${message}\n\nErrors:\n${errorDetails}`);
+          const errorDetails = failedDeletions
+            .map(
+              (f: { filename: string; error: string }) => `${f.filename}: ${f.error}`
+            )
+            .join("\n");
+          setError(
+            `Deleted ${summary.deleted} files, but ${summary.failed} failed:\n${errorDetails}`
+          );
         }
-        
-        // Clear selection and refresh
-        setSelectedForDeletion([]);
-        setShowBulkActions(false);
+
         fetchMedia();
       } else {
         setError(result.error || "Failed to delete files");
       }
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete media files:", error);
       setError("Failed to delete files");
-    }
-  };
-
-  const handleToggleSelection = (mediaFile: MediaFile) => {
-    const isSelected = selectedForDeletion.some(item => item._id === mediaFile._id);
-    if (isSelected) {
-      setSelectedForDeletion(prev => prev.filter(item => item._id !== mediaFile._id));
-    } else {
-      setSelectedForDeletion(prev => [...prev, mediaFile]);
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedForDeletion.length === media.length) {
-      setSelectedForDeletion([]);
-    } else {
-      setSelectedForDeletion([...media]);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -234,6 +221,9 @@ const MediaManager: React.FC<MediaManagerProps> = ({
         onSelect([mediaFile]);
         onClose?.();
       }
+    } else if (!isModalMode && bulkSelection.showBulkActions) {
+      // In page mode with bulk actions enabled
+      bulkSelection.selectItem(mediaFile);
     }
   };
 
@@ -259,70 +249,35 @@ const MediaManager: React.FC<MediaManagerProps> = ({
           allowedType={finalMediaType === "all" ? undefined : finalMediaType}
           onUploadSuccess={handleUploadSuccess}
           onUploadError={handleUploadError}
+          multiple={multiple}
         />
       )}
 
-      {/* Filters */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      {/* Filters and Bulk Selection Controls */}
+      <Box sx={{ mb: 2 }}>
         <MediaFilters
           filters={filters}
           onFiltersChange={handleFiltersChange}
           totalItems={pagination.totalItems}
         />
-        
-        {/* Bulk Actions Toggle - Only in page mode */}
+
+        {/* Bulk Selection Controls - Only in page mode */}
         {!isModalMode && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title={showBulkActions ? "Cancel selection" : "Select multiple files"}>
-              <Button
-                variant={showBulkActions ? "contained" : "outlined"}
-                color={showBulkActions ? "secondary" : "primary"}
-                startIcon={<SelectAllIcon />}
-                onClick={() => {
-                  setShowBulkActions(!showBulkActions);
-                  setSelectedForDeletion([]);
-                }}
-              >
-                {showBulkActions ? "Cancel" : "Select"}
-              </Button>
-            </Tooltip>
-            
-            {showBulkActions && selectedForDeletion.length > 0 && (
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleBulkDelete}
-              >
-                Delete ({selectedForDeletion.length})
-              </Button>
-            )}
-          </Box>
+          <BulkSelectionControls
+            items={media}
+            selectedItems={bulkSelection.selectedItems}
+            onSelectAll={bulkSelection.selectAll}
+            onClearSelection={bulkSelection.clearSelection}
+            onBulkDelete={handleBulkDelete}
+            showBulkActions={bulkSelection.showBulkActions}
+            onToggleBulkActions={bulkSelection.toggleBulkActions}
+            itemName="media files"
+            getItemId={(mediaFile) => mediaFile._id}
+            getItemDisplayName={(mediaFile) => mediaFile.filename}
+            isDeleting={isDeleting}
+          />
         )}
       </Box>
-
-      {/* Bulk Selection Toolbar */}
-      {showBulkActions && !isModalMode && (
-        <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={selectedForDeletion.length === media.length && media.length > 0}
-                    indeterminate={selectedForDeletion.length > 0 && selectedForDeletion.length < media.length}
-                    onChange={handleSelectAll}
-                  />
-                }
-                label={`Select All (${selectedForDeletion.length} of ${media.length} selected)`}
-              />
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              Click on files to select them for bulk actions
-            </Typography>
-          </Box>
-        </Box>
-      )}
 
       {/* Loading State */}
       {loading && (
@@ -336,10 +291,15 @@ const MediaManager: React.FC<MediaManagerProps> = ({
         <MediaGrid
           media={media}
           onDelete={isModalMode ? undefined : handleDelete}
-          onSelect={isModalMode ? handleMediaClick : (showBulkActions ? handleToggleSelection : undefined)}
+          onSelect={handleMediaClick}
           loading={loading}
-          selectedMedia={isModalMode ? selectedMedia : (showBulkActions ? selectedForDeletion : undefined)}
-          showBulkSelection={showBulkActions && !isModalMode}
+          selectedMedia={
+            isModalMode
+              ? selectedMedia
+              : bulkSelection.showBulkActions
+              ? bulkSelection.selectedItems
+              : undefined
+          }
         />
       )}
 
