@@ -3,11 +3,11 @@ import { Article } from './articles.interfaces';
 
 export interface User {
   _id: string;
-  name: string;
-  surname: string;
+  firstName: string;
+  lastName: string;
   username: string;
   email: string;
-  avatar: string;
+  avatarUrl: string;
   role: 'ADMIN' | 'USER' | 'STUDENT' | 'COLLEAGUE';
   bookmarks: {
     projects: string[];

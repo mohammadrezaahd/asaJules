@@ -12,7 +12,22 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    // Log detailed error information for debugging
+    if (error.response) {
+      // Server responded with error status
+      console.error("API Error Response:", {
+        status: error.response.status,
+        data: error.response.data,
+        url: error.config?.url,
+        method: error.config?.method
+      });
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error("API Network Error:", error.message);
+    } else {
+      // Something else happened
+      console.error("API Error:", error.message);
+    }
     return Promise.reject(error);
   }
 );

@@ -12,6 +12,7 @@ import {
   Alert,
   Tooltip,
   Stack,
+  Checkbox,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -25,13 +26,21 @@ interface CategoriesListProps {
   loading: boolean;
   onEdit: (category: Category) => void;
   onDelete: (id: string, force?: boolean) => Promise<{ success: boolean; error?: string; hasChildren?: boolean; childrenCount?: number; childrenNames?: string[]; categoryName?: string }>;
+  
+  // Bulk selection props
+  showBulkActions?: boolean;
+  onSelectItem?: (category: Category) => void;
+  isItemSelected?: (category: Category) => boolean;
 }
 
 export default function CategoriesList({ 
   categories, 
   loading, 
   onEdit, 
-  onDelete 
+  onDelete,
+  showBulkActions = false,
+  onSelectItem,
+  isItemSelected,
 }: CategoriesListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -116,8 +125,17 @@ export default function CategoriesList({
           <Card 
             key={category._id}
             variant="outlined" 
+            onClick={
+              showBulkActions && onSelectItem
+                ? () => onSelectItem(category)
+                : undefined
+            }
             sx={{ 
               transition: 'all 0.2s',
+              cursor: showBulkActions ? 'pointer' : 'default',
+              backgroundColor: showBulkActions && isItemSelected?.(category) 
+                ? 'action.selected' 
+                : 'transparent',
               '&:hover': {
                 boxShadow: 2,
                 transform: 'translateY(-1px)'
@@ -126,6 +144,17 @@ export default function CategoriesList({
           >
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  {/* Bulk selection checkbox */}
+                  {showBulkActions && onSelectItem && isItemSelected && (
+                    <Box sx={{ mr: 2, mt: 0.5 }}>
+                      <Checkbox
+                        checked={isItemSelected(category)}
+                        onChange={() => onSelectItem(category)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Box>
+                  )}
+
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                       {/* Level indicator */}
@@ -176,32 +205,35 @@ export default function CategoriesList({
                     </Stack>
                   </Box>
                   
-                  <Stack direction="row" spacing={1}>
-                    <Tooltip title="Edit category">
-                      <IconButton
-                        onClick={() => onEdit(category)}
-                        color="primary"
-                        size="small"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    
-                    <Tooltip title="Delete category">
-                      <IconButton
-                        onClick={() => handleDelete(category._id, category.name)}
-                        disabled={deletingId === category._id}
-                        color="error"
-                        size="small"
-                      >
-                        {deletingId === category._id ? (
-                          <CircularProgress size={20} />
-                        ) : (
-                          <DeleteIcon />
-                        )}
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
+                  {/* Show action buttons only when not in bulk mode */}
+                  {!showBulkActions && (
+                    <Stack direction="row" spacing={1}>
+                      <Tooltip title="Edit category">
+                        <IconButton
+                          onClick={() => onEdit(category)}
+                          color="primary"
+                          size="small"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      <Tooltip title="Delete category">
+                        <IconButton
+                          onClick={() => handleDelete(category._id, category.name)}
+                          disabled={deletingId === category._id}
+                          color="error"
+                          size="small"
+                        >
+                          {deletingId === category._id ? (
+                            <CircularProgress size={20} />
+                          ) : (
+                            <DeleteIcon />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  )}
                 </Box>
               </CardContent>
             </Card>

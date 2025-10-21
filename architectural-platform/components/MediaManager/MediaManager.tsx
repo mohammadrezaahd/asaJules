@@ -16,13 +16,17 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import {
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import { MediaFile, MediaQueryParams } from "@/types";
 import { mediaApi } from "@/components/api";
 import FileUpload from "./FileUpload";
 import MediaFilters from "./MediaFilters";
 import MediaGrid from "./MediaGrid";
 import PaginationControls from "../Common/PaginationControls";
+import BulkSelectionControls from "../Common/BulkSelectionControls";
+import useBulkSelection from "../Common/useBulkSelection";
 
 interface MediaManagerProps {
   // Modal mode props
@@ -59,11 +63,18 @@ const MediaManager: React.FC<MediaManagerProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [selectedMedia, setSelectedMedia] = useState<MediaFile[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState<MediaQueryParams>({
     page: 1,
     limit: 12,
     search: "",
     type: finalMediaType,
+  });
+
+  // Bulk selection for page mode (deletion)
+  const bulkSelection = useBulkSelection({
+    items: media,
+    getItemId: (mediaFile) => mediaFile._id,
   });
 
   // Update filters when mediaType changes
@@ -160,6 +171,39 @@ const MediaManager: React.FC<MediaManagerProps> = ({
     }
   };
 
+  const handleBulkDelete = async (selectedMediaFiles: MediaFile[]) => {
+    const ids = selectedMediaFiles.map((mediaFile) => mediaFile._id);
+
+    try {
+      setIsDeleting(true);
+      const result = await mediaApi.deleteMultiple(ids);
+
+      if (result.isSuccess && result.data) {
+        const { summary, failedDeletions } = result.data;
+
+        if (failedDeletions.length > 0) {
+          const errorDetails = failedDeletions
+            .map(
+              (f: { filename: string; error: string }) => `${f.filename}: ${f.error}`
+            )
+            .join("\n");
+          setError(
+            `Deleted ${summary.deleted} files, but ${summary.failed} failed:\n${errorDetails}`
+          );
+        }
+
+        fetchMedia();
+      } else {
+        setError(result.error || "Failed to delete files");
+      }
+    } catch (error) {
+      console.error("Failed to delete media files:", error);
+      setError("Failed to delete files");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleMediaClick = (mediaFile: MediaFile) => {
     if (isModalMode && onSelect) {
       if (multiple) {
@@ -177,6 +221,9 @@ const MediaManager: React.FC<MediaManagerProps> = ({
         onSelect([mediaFile]);
         onClose?.();
       }
+    } else if (!isModalMode && bulkSelection.showBulkActions) {
+      // In page mode with bulk actions enabled
+      bulkSelection.selectItem(mediaFile);
     }
   };
 
@@ -202,15 +249,35 @@ const MediaManager: React.FC<MediaManagerProps> = ({
           allowedType={finalMediaType === "all" ? undefined : finalMediaType}
           onUploadSuccess={handleUploadSuccess}
           onUploadError={handleUploadError}
+          multiple={multiple}
         />
       )}
 
-      {/* Filters */}
-      <MediaFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        totalItems={pagination.totalItems}
-      />
+      {/* Filters and Bulk Selection Controls */}
+      <Box sx={{ mb: 2 }}>
+        <MediaFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalItems={pagination.totalItems}
+        />
+
+        {/* Bulk Selection Controls - Only in page mode */}
+        {!isModalMode && (
+          <BulkSelectionControls
+            items={media}
+            selectedItems={bulkSelection.selectedItems}
+            onSelectAll={bulkSelection.selectAll}
+            onClearSelection={bulkSelection.clearSelection}
+            onBulkDelete={handleBulkDelete}
+            showBulkActions={bulkSelection.showBulkActions}
+            onToggleBulkActions={bulkSelection.toggleBulkActions}
+            itemName="media files"
+            getItemId={(mediaFile) => mediaFile._id}
+            getItemDisplayName={(mediaFile) => mediaFile.filename}
+            isDeleting={isDeleting}
+          />
+        )}
+      </Box>
 
       {/* Loading State */}
       {loading && (
@@ -224,9 +291,15 @@ const MediaManager: React.FC<MediaManagerProps> = ({
         <MediaGrid
           media={media}
           onDelete={isModalMode ? undefined : handleDelete}
-          onSelect={isModalMode ? handleMediaClick : undefined}
+          onSelect={handleMediaClick}
           loading={loading}
-          selectedMedia={isModalMode ? selectedMedia : undefined}
+          selectedMedia={
+            isModalMode
+              ? selectedMedia
+              : bulkSelection.showBulkActions
+              ? bulkSelection.selectedItems
+              : undefined
+          }
         />
       )}
 

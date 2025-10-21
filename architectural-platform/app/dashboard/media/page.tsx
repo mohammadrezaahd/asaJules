@@ -9,6 +9,7 @@ const MediaLibraryPage = () => {
       title="Media Library"
       allowedType="all"
       showUpload={true}
+      multiple
     />
   );
 };

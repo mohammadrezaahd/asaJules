@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import { getToken } from 'next-auth/jwt';
 import dbConnect from '@/lib/db';
 import '@/lib/models'; // Import all models to register them
 import { Project } from '@/lib/models';
@@ -197,5 +199,82 @@ export async function POST(req: Request) {
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
+  }
+}
+
+// DELETE multiple projects
+export async function DELETE(req: NextRequest) {
+  try {
+    // Check authentication and authorization
+    const token = await getToken({ req });
+    if (!token || token.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+    
+    const body = await req.json();
+    const { ids } = body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: "Project IDs array is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find all projects to be deleted
+    const projects = await Project.find({ _id: { $in: ids } });
+    
+    if (projects.length === 0) {
+      return NextResponse.json(
+        { error: "No projects found with provided IDs" },
+        { status: 404 }
+      );
+    }
+
+    const deletedItems = [];
+    const failedDeletions = [];
+
+    // Delete each project
+    for (const project of projects) {
+      try {
+        await Project.findByIdAndDelete(project._id);
+        
+        deletedItems.push({
+          id: project._id,
+          title: project.title,
+          status: project.status
+        });
+      } catch (error) {
+        console.error(`Error deleting project ${project._id}:`, error);
+        failedDeletions.push({
+          id: project._id,
+          title: project.title,
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+    
+    return NextResponse.json({
+      message: `Successfully deleted ${deletedItems.length} projects`,
+      deletedItems,
+      failedDeletions,
+      summary: {
+        total: projects.length,
+        deleted: deletedItems.length,
+        failed: failedDeletions.length
+      }
+    }, { status: 200 });
+    
+  } catch (error) {
+    console.error("Error in bulk delete projects:", error);
+    return NextResponse.json(
+      { error: "Server error while deleting projects" },
+      { status: 500 }
+    );
   }
 }

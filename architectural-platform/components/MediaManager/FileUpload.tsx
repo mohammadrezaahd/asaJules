@@ -14,68 +14,165 @@ import {
   Typography,
   Paper,
   SelectChangeEvent,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Chip,
 } from "@mui/material";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import {
+  CloudUpload as CloudUploadIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Upload as UploadIcon,
+} from "@mui/icons-material";
 import { mediaApi, MEDIA_FILTER_TYPES } from "@/components/api/media.api";
+
+interface FileProgress {
+  file: File;
+  percent: number;
+  status: 'waiting' | 'uploading' | 'completed' | 'failed';
+  error?: string;
+}
 
 interface FileUploadProps {
   allowedType?: "models" | "images" | "all";
   onUploadSuccess?: () => void;
   onUploadError?: (error: string) => void;
+  multiple?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
   allowedType = "all",
   onUploadSuccess,
   onUploadError,
+  multiple = false,
 }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>("");
   const [currentAllowedType, setCurrentAllowedType] = useState<
     "models" | "images" | "all"
   >(allowedType);
+  const [filesProgress, setFilesProgress] = useState<FileProgress[]>([]);
+  const [overallProgress, setOverallProgress] = useState(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError("");
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      const invalidFiles: string[] = [];
 
-      // Validate file type
-      if (!mediaApi.isFileTypeAllowed(file, currentAllowedType)) {
+      // Validate all selected files
+      files.forEach(file => {
+        if (!mediaApi.isFileTypeAllowed(file, currentAllowedType)) {
+          invalidFiles.push(file.name);
+        }
+      });
+
+      if (invalidFiles.length > 0) {
         const filterType = MEDIA_FILTER_TYPES.find(
           (ft) => ft.value === currentAllowedType
         );
-        const errorMsg = `Only ${filterType?.label.toLowerCase()} are allowed. Supported formats: ${filterType?.extensions.join(
-          ", "
-        )}`;
+        const errorMsg = `Invalid file types: ${invalidFiles.join(', ')}. Only ${filterType?.label.toLowerCase()} are allowed. Supported formats: ${filterType?.extensions.join(", ")}`;
         setError(errorMsg);
         if (onUploadError) onUploadError(errorMsg);
         return;
       }
 
-      setSelectedFile(file);
+      setSelectedFiles(files);
+      
+      // Initialize progress for each file
+      setFilesProgress(files.map(file => ({
+        file,
+        percent: 0,
+        status: 'waiting' as const
+      })));
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     setUploading(true);
     setError("");
+    setOverallProgress(0);
 
     try {
-      const result = await mediaApi.upload(selectedFile, currentAllowedType);
+      const result = await mediaApi.uploadMultiple(
+        selectedFiles, 
+        currentAllowedType,
+        (progress) => {
+          // Update individual file progress
+          setFilesProgress(prev => 
+            prev.map(fp => 
+              fp.file.name === progress.file 
+                ? { ...fp, percent: progress.percent, status: progress.status }
+                : fp
+            )
+          );
 
-      if (result.isSuccess) {
-        setSelectedFile(null);
-        // Reset file input
-        const fileInput = document.querySelector(
-          'input[type="file"]'
-        ) as HTMLInputElement;
-        if (fileInput) fileInput.value = "";
+          // Calculate overall progress
+          setFilesProgress(current => {
+            const updated = current.map(fp => 
+              fp.file.name === progress.file 
+                ? { ...fp, percent: progress.percent, status: progress.status }
+                : fp
+            );
+            
+            const totalProgress = updated.reduce((sum, fp) => sum + fp.percent, 0);
+            const avgProgress = totalProgress / updated.length;
+            setOverallProgress(Math.round(avgProgress));
+            
+            return updated;
+          });
+        }
+      );
 
-        if (onUploadSuccess) onUploadSuccess();
+      if (result.isSuccess && result.data) {
+        const { summary, failedFiles } = result.data;
+        
+        // Mark failed files in progress
+        if (failedFiles.length > 0) {
+          setFilesProgress(prev => 
+            prev.map(fp => {
+              const failed = failedFiles.find(f => f.filename === fp.file.name);
+              return failed 
+                ? { ...fp, status: 'failed' as const, error: failed.error }
+                : fp;
+            })
+          );
+        }
+
+        // Show summary message
+        let message = `Successfully uploaded ${summary.uploaded} of ${summary.total} files`;
+        if (summary.failed > 0) {
+          const failedNames = failedFiles.map(f => f.filename).join(', ');
+          message += `\nFailed files: ${failedNames}`;
+        }
+
+        if (summary.uploaded > 0) {
+          // Reset form after successful uploads
+          setTimeout(() => {
+            setSelectedFiles([]);
+            setFilesProgress([]);
+            setOverallProgress(0);
+            
+            // Reset file input
+            const fileInput = document.querySelector(
+              'input[type="file"]'
+            ) as HTMLInputElement;
+            if (fileInput) fileInput.value = "";
+
+            if (onUploadSuccess) onUploadSuccess();
+          }, 2000); // Show success state for 2 seconds
+        }
+
+        if (summary.failed > 0) {
+          setError(message);
+          if (onUploadError) onUploadError(message);
+        }
+
       } else {
         const errorMsg = result.error || "Upload failed";
         setError(errorMsg);
@@ -93,7 +190,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const handleAllowedTypeChange = (event: SelectChangeEvent<string>) => {
     const newType = event.target.value as "models" | "images" | "all";
     setCurrentAllowedType(newType);
-    setSelectedFile(null);
+    setSelectedFiles([]);
+    setFilesProgress([]);
+    setOverallProgress(0);
     setError("");
 
     // Reset file input
@@ -150,6 +249,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           }
           inputProps={{
             accept: getAcceptAttribute(),
+            multiple: multiple,
           }}
         />
 
@@ -157,17 +257,101 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <Button
           variant="contained"
           onClick={handleUpload}
-          disabled={!selectedFile || uploading}
+          disabled={selectedFiles.length === 0 || uploading}
           startIcon={<CloudUploadIcon />}
         >
-          {uploading ? "Uploading..." : "Upload"}
+          {uploading ? "Uploading..." : `Upload ${selectedFiles.length} File${selectedFiles.length !== 1 ? 's' : ''}`}
         </Button>
       </Box>
 
-      {/* Progress Bar */}
+      {/* Overall Progress Bar */}
       {uploading && (
         <Box sx={{ mt: 2 }}>
-          <LinearProgress />
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Overall Progress: {overallProgress}%
+            </Typography>
+          </Box>
+          <LinearProgress variant="determinate" value={overallProgress} />
+        </Box>
+      )}
+
+      {/* Individual File Progress */}
+      {filesProgress.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Files Progress:
+          </Typography>
+          <List dense>
+            {filesProgress.map((fileProgress, index) => (
+              <ListItem key={index} sx={{ py: 0.5 }}>
+                <ListItemIcon>
+                  {fileProgress.status === 'completed' && (
+                    <CheckCircleIcon color="success" />
+                  )}
+                  {fileProgress.status === 'failed' && (
+                    <ErrorIcon color="error" />
+                  )}
+                  {fileProgress.status === 'uploading' && (
+                    <UploadIcon color="primary" />
+                  )}
+                  {fileProgress.status === 'waiting' && (
+                    <UploadIcon color="disabled" />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2">
+                        {fileProgress.file.name}
+                      </Typography>
+                      <Chip
+                        label={fileProgress.status}
+                        size="small"
+                        color={
+                          fileProgress.status === 'completed'
+                            ? 'success'
+                            : fileProgress.status === 'failed'
+                            ? 'error'
+                            : fileProgress.status === 'uploading'
+                            ? 'primary'
+                            : 'default'
+                        }
+                      />
+                    </Box>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 0.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="caption">
+                          {(fileProgress.file.size / 1024 / 1024).toFixed(2)} MB
+                        </Typography>
+                        <Typography variant="caption">
+                          {fileProgress.percent}%
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={fileProgress.percent}
+                        color={
+                          fileProgress.status === 'completed'
+                            ? 'success'
+                            : fileProgress.status === 'failed'
+                            ? 'error'
+                            : 'primary'
+                        }
+                      />
+                      {fileProgress.error && (
+                        <Typography variant="caption" color="error">
+                          {fileProgress.error}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
         </Box>
       )}
 
@@ -178,12 +362,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </Alert>
       )}
 
-      {/* Selected File Info */}
-      {selectedFile && !uploading && (
+      {/* Selected Files Summary */}
+      {selectedFiles.length > 0 && !uploading && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Selected: {selectedFile.name} (
-            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+            Selected {selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''} 
+            ({(selectedFiles.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB total)
           </Typography>
         </Box>
       )}

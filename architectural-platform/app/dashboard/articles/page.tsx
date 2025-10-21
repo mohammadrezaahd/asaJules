@@ -25,24 +25,22 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import Link from "next/link";
-import { projectsApi } from "@/components/api";
-import { Project, ProjectQueryParams, PaginationInfo } from "@/types";
-import { ProjectFilters } from "@/components/Projects";
+import { articlesApi } from "@/components/api";
+import { Article, ArticleQueryParams, PaginationInfo } from "@/types";
 import PaginationControls from "@/components/Common/PaginationControls";
 import BulkSelectionControls from "@/components/Common/BulkSelectionControls";
 import useBulkSelection from "@/components/Common/useBulkSelection";
 
-export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function ArticlesPage() {
+  const [articles, setArticles] = useState<Article[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [filters, setFilters] = useState<ProjectQueryParams>({
+  const [filters, setFilters] = useState<ArticleQueryParams>({
     page: 1,
     limit: 12,
-    status: undefined, // Show all projects in dashboard
   });
   const [pagination, setPagination] = useState<PaginationInfo>({
     totalItems: 0,
@@ -52,17 +50,17 @@ export default function ProjectsPage() {
   });
 
   const bulkSelection = useBulkSelection({
-    items: projects,
-    getItemId: (project) => project._id,
+    items: articles,
+    getItemId: (article) => article._id,
   });
 
-  const fetchProjects = React.useCallback(async () => {
+  const fetchArticles = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await projectsApi.getAll(filters);
+      const result = await articlesApi.getAll(filters);
       if (result.isSuccess && result.data) {
-        setProjects(result.data);
+        setArticles(result.data);
         setPagination({
           totalItems: result.pagination?.totalItems || 0,
           totalPages: result.pagination?.totalPages || 1,
@@ -70,11 +68,11 @@ export default function ProjectsPage() {
           itemsPerPage: result.pagination?.itemsPerPage || 12,
         });
       } else {
-        setError(result.error || "Failed to fetch projects");
+        setError(result.error || "Failed to fetch articles");
       }
     } catch (err: unknown) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch projects";
+        err instanceof Error ? err.message : "Failed to fetch articles";
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -82,25 +80,25 @@ export default function ProjectsPage() {
   }, [filters]);
 
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+    fetchArticles();
+  }, [fetchArticles]);
 
-  const handleDeleteClick = (project: Project) => {
-    setProjectToDelete(project);
+  const handleDeleteClick = (article: Article) => {
+    setArticleToDelete(article);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (projectToDelete) {
+    if (articleToDelete) {
       try {
         setIsDeleting(true);
-        await projectsApi.delete(projectToDelete._id);
+        await articlesApi.delete(articleToDelete._id);
         setDeleteDialogOpen(false);
-        setProjectToDelete(null);
-        fetchProjects();
+        setArticleToDelete(null);
+        fetchArticles();
       } catch (err: unknown) {
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to delete project";
+          err instanceof Error ? err.message : "Failed to delete article";
         setError(errorMessage);
       } finally {
         setIsDeleting(false);
@@ -108,12 +106,12 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleBulkDelete = async (selectedProjects: Project[]) => {
-    const ids = selectedProjects.map((project) => project._id);
+  const handleBulkDelete = async (selectedArticles: Article[]) => {
+    const ids = selectedArticles.map((article) => article._id);
 
     try {
       setIsDeleting(true);
-      const result = await projectsApi.deleteMultiple(ids);
+      const result = await articlesApi.deleteMultiple(ids);
 
       if (result.isSuccess && result.data) {
         const { summary, failedDeletions } = result.data;
@@ -125,32 +123,28 @@ export default function ProjectsPage() {
             )
             .join("\n");
           setError(
-            `Deleted ${summary.deleted} projects, but ${summary.failed} failed:\n${errorDetails}`
+            `Deleted ${summary.deleted} articles, but ${summary.failed} failed:\n${errorDetails}`
           );
         }
 
-        fetchProjects();
+        fetchArticles();
       } else {
-        setError(result.error || "Failed to delete projects");
+        setError(result.error || "Failed to delete articles");
       }
     } catch (error) {
-      console.error("Failed to delete projects:", error);
-      setError("Failed to delete projects");
+      console.error("Failed to delete articles:", error);
+      setError("Failed to delete articles");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleFiltersChange = (newFilters: ProjectQueryParams) => {
-    setFilters(newFilters);
-  };
-
   const handlePageChange = (page: number) => {
-    setFilters((prev) => ({ ...prev, page }));
+    setFilters((prev: ArticleQueryParams) => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (itemsPerPage: number) => {
-    setFilters((prev) => ({ ...prev, limit: itemsPerPage, page: 1 }));
+    setFilters((prev: ArticleQueryParams) => ({ ...prev, limit: itemsPerPage, page: 1 }));
   };
 
   return (
@@ -163,14 +157,14 @@ export default function ProjectsPage() {
           mb: 2,
         }}
       >
-        <Typography variant="h4">Projects</Typography>
+        <Typography variant="h4">Articles</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           component={Link}
-          href="/dashboard/projects/new"
+          href="/dashboard/articles/new"
         >
-          Add New Project
+          Add New Article
         </Button>
       </Box>
 
@@ -182,25 +176,17 @@ export default function ProjectsPage() {
 
       {/* Bulk Selection Controls */}
       <BulkSelectionControls
-        items={projects}
+        items={articles}
         selectedItems={bulkSelection.selectedItems}
         onSelectAll={bulkSelection.selectAll}
         onClearSelection={bulkSelection.clearSelection}
         onBulkDelete={handleBulkDelete}
         showBulkActions={bulkSelection.showBulkActions}
         onToggleBulkActions={bulkSelection.toggleBulkActions}
-        itemName="projects"
-        getItemId={(project) => project._id}
-        getItemDisplayName={(project) => project.title}
+        itemName="articles"
+        getItemId={(article) => article._id}
+        getItemDisplayName={(article) => article.title}
         isDeleting={isDeleting}
-      />
-
-      {/* Filters */}
-      <ProjectFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        totalItems={pagination.totalItems}
-        showStatusFilter={true}
       />
 
       {loading ? (
@@ -209,19 +195,19 @@ export default function ProjectsPage() {
         </Box>
       ) : (
         <List>
-          {projects?.map((project) => (
+          {articles?.map((article) => (
             <ListItem
-              key={project._id}
+              key={article._id}
               onClick={
                 bulkSelection.showBulkActions
-                  ? () => bulkSelection.selectItem(project)
+                  ? () => bulkSelection.selectItem(article)
                   : undefined
               }
               sx={{
                 cursor: bulkSelection.showBulkActions ? "pointer" : "default",
                 borderRadius: 1,
                 mb: 1,
-                backgroundColor: bulkSelection.isItemSelected(project)
+                backgroundColor: bulkSelection.isItemSelected(article)
                   ? "action.selected"
                   : "transparent",
               }}
@@ -232,7 +218,7 @@ export default function ProjectsPage() {
                       edge="end"
                       aria-label="edit"
                       component={Link}
-                      href={`/dashboard/projects/edit/${project._id}`}
+                      href={`/dashboard/articles/edit/${article._id}`}
                       disabled={isDeleting}
                     >
                       <EditIcon />
@@ -240,7 +226,7 @@ export default function ProjectsPage() {
                     <IconButton
                       edge="end"
                       aria-label="delete"
-                      onClick={() => handleDeleteClick(project)}
+                      onClick={() => handleDeleteClick(article)}
                       disabled={isDeleting}
                     >
                       <DeleteIcon />
@@ -252,14 +238,14 @@ export default function ProjectsPage() {
               {bulkSelection.showBulkActions && (
                 <ListItemIcon>
                   <Checkbox
-                    checked={bulkSelection.isItemSelected(project)}
-                    onChange={() => bulkSelection.selectItem(project)}
+                    checked={bulkSelection.isItemSelected(article)}
+                    onChange={() => bulkSelection.selectItem(article)}
                   />
                 </ListItemIcon>
               )}
               <ListItemText
-                primary={project.title}
-                secondary={`Status: ${project.status}`}
+                primary={article.title}
+                secondary={`Published: ${article.published ? "Yes" : "No"}`}
               />
             </ListItem>
           ))}
@@ -273,18 +259,19 @@ export default function ProjectsPage() {
         itemsPerPage={filters.limit || 12}
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
-        itemLabel="projects"
+        itemLabel="articles"
         showItemsInfo={true}
       />
+
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Delete Project</DialogTitle>
+        <DialogTitle>Delete Article</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the project &quot;
-            {projectToDelete?.title}&quot;? This action cannot be undone.
+            Are you sure you want to delete the article &quot;
+            {articleToDelete?.title}&quot;? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
