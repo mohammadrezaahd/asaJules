@@ -17,6 +17,7 @@ import {
 import {
   Group,
   Inbox as InboxIcon,
+  Bookmark,
   Mail as MailIcon,
   Menu as MenuIcon,
   Person2,
@@ -34,15 +35,20 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+import { Role } from "@/types/role";
+
   const { data: session } = useSession();
 
   const dashboardLinks = [
     { text: "Profile", href: `/dashboard/profile/${session?.user?.id || ''}`, icon: <Person2 /> },
-    { text: "Users", href: "/dashboard/users", icon: <Group /> },
-    { text: "Projects", href: "/dashboard/projects", icon: <MailIcon /> },
-    { text: "Articles", href: "/dashboard/articles", icon: <InboxIcon /> },
-    { text: "Categories", href: "/dashboard/categories", icon: <MailIcon /> },
-    { text: "Media", href: "/dashboard/media", icon: <PhotoLibraryIcon /> },
+    { text: "Bookmarks", href: "/dashboard/bookmarks", icon: <Bookmark /> },
+    ...(session?.user?.role === Role.ADMIN ? [
+      { text: "Users", href: "/dashboard/users", icon: <Group /> },
+      { text: "Projects", href: "/dashboard/projects", icon: <MailIcon /> },
+      { text: "Articles", href: "/dashboard/articles", icon: <InboxIcon /> },
+      { text: "Categories", href: "/dashboard/categories", icon: <MailIcon /> },
+      { text: "Media", href: "/dashboard/media", icon: <PhotoLibraryIcon /> },
+    ] : []),
   ];
 
   const handleToggle = () => {

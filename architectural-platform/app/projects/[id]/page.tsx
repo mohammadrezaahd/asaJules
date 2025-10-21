@@ -10,22 +10,34 @@ import {
   CardMedia,
   CircularProgress,
   Alert,
+  IconButton,
 } from "@mui/material";
+import { Bookmark, BookmarkBorder } from "@mui/icons-material";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { projectsApi } from "@/components/api";
+import { projectsApi, usersApi } from "@/components/api";
 import { Project } from "@/types";
 import { ModelViewer } from "@/components/Three";
+import { useSession } from "next-auth/react";
 
 export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModelViewer, setShowModelViewer] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { data: session } = useSession();
   const params = useParams();
   const projectId = params.id as string;
 
   useEffect(() => {
+    if (session?.user?.id) {
+      usersApi.getBookmarks(session.user.id).then((response) => {
+        if (response.isSuccess && response.data) {
+          setIsBookmarked(response.data.some((p: Project) => p._id === projectId));
+        }
+      });
+    }
     const fetchProject = async () => {
       setLoading(true);
       setError(null);
@@ -74,11 +86,29 @@ export default function ProjectDetailPage() {
     );
   }
 
+  const handleBookmark = async () => {
+    if (session?.user?.id) {
+      if (isBookmarked) {
+        await usersApi.removeBookmark(session.user.id, projectId);
+      } else {
+        await usersApi.addBookmark(session.user.id, projectId);
+      }
+      setIsBookmarked(!isBookmarked);
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        {project.title}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {project.title}
+        </Typography>
+        {session?.user && (
+          <IconButton onClick={handleBookmark}>
+            {isBookmarked ? <Bookmark /> : <BookmarkBorder />}
+          </IconButton>
+        )}
+      </Box>
       {project.thumbnail && (
         <Box
           sx={{ position: "relative", width: "100%", height: "400px", mb: 4 }}

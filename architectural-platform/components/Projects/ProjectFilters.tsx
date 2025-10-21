@@ -62,10 +62,12 @@ const ProjectFilters: React.FC<ProjectFiltersProps> = ({
     });
   };
 
+import { Status } from "@/types/status";
+
   const handleStatusChange = (event: SelectChangeEvent<string>) => {
     onFiltersChange({
       ...filters,
-      status: event.target.value as 'Draft' | 'Published' | undefined,
+      status: event.target.value as Status | undefined,
       page: 1, // Reset to first page when filtering
     });
   };
@@ -132,8 +134,8 @@ const ProjectFilters: React.FC<ProjectFiltersProps> = ({
             label="Status"
           >
             <MenuItem value="">All Status</MenuItem>
-            <MenuItem value="Published">Published</MenuItem>
-            <MenuItem value="Draft">Draft</MenuItem>
+            <MenuItem value={Status.PUBLISHED}>Published</MenuItem>
+            <MenuItem value={Status.DRAFT}>Draft</MenuItem>
           </Select>
         </FormControl>
       )}

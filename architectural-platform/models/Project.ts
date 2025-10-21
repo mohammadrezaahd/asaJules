@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { Status } from '@/types/status';
 
 export interface IProject extends Document {
   title: string;
@@ -9,7 +10,7 @@ export interface IProject extends Document {
   modelUrl: string; // URL string
   contributors?: mongoose.Schema.Types.ObjectId[];
   tags?: string[];
-  status?: 'Draft' | 'Published';
+  status?: Status;
   createdBy?: mongoose.Schema.Types.ObjectId;
   modelConfig?: {
     ambientIntensity?: number;
@@ -35,7 +36,7 @@ const ProjectSchema: Schema = new Schema(
     modelUrl: { type: String, required: true }, // Required URL field
     contributors: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     tags: [{ type: String }],
-    status: { type: String, enum: ['Draft', 'Published'], default: 'Draft' },
+    status: { type: String, enum: Object.values(Status), default: Status.DRAFT },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     modelConfig: {
       ambientIntensity: { type: Number, default: 0.5 },

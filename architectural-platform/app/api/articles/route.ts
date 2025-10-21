@@ -43,9 +43,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { Role } from "@/types/role";
+
 export async function POST(req: NextRequest) {
   const token = await getToken({ req });
-  if (!token || token.role !== "ADMIN") {
+  if (!token || token.role !== Role.ADMIN) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -69,7 +71,7 @@ export async function DELETE(req: NextRequest) {
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

@@ -51,8 +51,10 @@ export async function PUT(
 
     const { id } = await params;
 
+import { Role } from "@/types/role";
+
     // Users can only update their own profile unless they're admin
-    if (token.id !== id && token.role !== "ADMIN") {
+    if (token.id !== id && token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Forbidden. You can only update your own profile." },
         { status: 403 }
@@ -64,7 +66,7 @@ export async function PUT(
     const body = await req.json() as UpdateUserDto;
     
     // Don't allow users to change their own role unless they're admin
-    if (token.id === id && body.role && token.role !== "ADMIN") {
+    if (token.id === id && body.role && token.role !== Role.ADMIN) {
       delete body.role;
     }
 
@@ -141,7 +143,7 @@ export async function DELETE(
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

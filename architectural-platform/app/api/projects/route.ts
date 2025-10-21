@@ -8,9 +8,11 @@ import { Project } from '@/lib/models';
 import { authOptions } from '../auth/[...nextauth]/route';
 import mongoose from 'mongoose';
 
+import { Status } from '@/types/status';
+
 // Define the query type for better type safety
 interface ProjectQuery {
-  status?: 'Draft' | 'Published';
+  status?: Status;
   categories?: string | mongoose.Types.ObjectId | { $in: (string | mongoose.Types.ObjectId)[] };
   tags?: { $in: string[] | RegExp[] };
   $or?: Array<{
@@ -27,7 +29,7 @@ export async function GET(req: Request) {
   const limit = parseInt(searchParams.get('limit') || '12', 10);
   const category = searchParams.get('category');
   const search = searchParams.get('search');
-  const status = searchParams.get('status') as 'Draft' | 'Published' | null;
+  const status = searchParams.get('status') as Status | null;
   const tags = searchParams.get('tags')?.split(',').filter(tag => tag.trim() !== '');
 
   const query: ProjectQuery = {};
@@ -87,10 +89,12 @@ export async function GET(req: Request) {
   }
 }
 
+import { Role } from '@/types/role';
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || session.user.role !== Role.ADMIN) {
     return NextResponse.json({ message: 'Not authorized' }, { status: 401 });
   }
 
@@ -150,7 +154,7 @@ export async function POST(req: Request) {
       categories: body.categories || [],
       tags: body.tags || [],
       contributors: body.contributors || [],
-      status: body.status || 'Draft' as const
+      status: body.status || Status.DRAFT
     };
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +211,7 @@ export async function DELETE(req: NextRequest) {
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

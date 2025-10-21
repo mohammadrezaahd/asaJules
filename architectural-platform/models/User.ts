@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { Role } from '@/types/role';
 
 export interface IUser extends Document {
   firstName: string;
@@ -7,14 +8,13 @@ export interface IUser extends Document {
   email: string;
   passwordHash?: string;
   avatarUrl?: string;
-  role: 'ADMIN' | 'USER' | 'STUDENT' | 'COLLEAGUE';
+  role: Role;
   provider: 'credentials' | 'google';
   providerId?: string;
   bookmarks: {
     projects: mongoose.Schema.Types.ObjectId[];
     articles: mongoose.Schema.Types.ObjectId[];
   };
-  collaborations: mongoose.Schema.Types.ObjectId[];
 }
 
 const UserSchema: Schema = new Schema(
@@ -27,8 +27,8 @@ const UserSchema: Schema = new Schema(
     avatarUrl: { type: String },
     role: {
       type: String,
-      enum: ['ADMIN', 'USER', 'STUDENT', 'COLLEAGUE'],
-      default: 'USER',
+      enum: Object.values(Role),
+      default: Role.USER,
     },
     provider: {
       type: String,
@@ -40,7 +40,6 @@ const UserSchema: Schema = new Schema(
       projects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
       articles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Article' }],
     },
-    collaborations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Project' }],
   },
   { timestamps: true }
 );

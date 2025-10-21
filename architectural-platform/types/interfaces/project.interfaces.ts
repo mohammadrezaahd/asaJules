@@ -1,5 +1,7 @@
 import { UserSummary } from './user.interfaces';
 
+import { Status } from '../status';
+
 export interface Project {
   _id: string;
   title: string;
@@ -11,7 +13,7 @@ export interface Project {
   modelConfig: ModelConfig;
   contributors: UserSummary[];
   tags: string[];
-  status: 'Draft' | 'Published';
+  status: Status;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +38,6 @@ export interface ProjectQueryParams {
   limit?: number;
   search?: string;
   category?: string;
-  status?: 'Draft' | 'Published';
+  status?: Status;
   tags?: string[];
 }

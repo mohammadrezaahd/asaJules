@@ -1,3 +1,5 @@
+import { Role } from '../role';
+
 export interface CreateUserDto {
   firstName: string;
   lastName: string;
@@ -8,5 +10,5 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto extends Partial<CreateUserDto> {
-  role?: 'ADMIN' | 'USER' | 'STUDENT' | 'COLLEAGUE';
+  role?: Role;
 }

@@ -10,12 +10,14 @@ import PaginationControls from '@/components/Common/PaginationControls';
 
 export default function ProjectsArchivePage() {
   const [projects, setProjects] = useState<Project[]>([]);
+import { Status } from '@/types/status';
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ProjectQueryParams>({
     page: 1,
     limit: 12,
-    status: 'Published', // Only show published projects in public archive
+    status: Status.PUBLISHED, // Only show published projects in public archive
   });
   const [pagination, setPagination] = useState<PaginationInfo>({
     totalItems: 0,

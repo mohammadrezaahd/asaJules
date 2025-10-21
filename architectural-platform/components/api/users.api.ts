@@ -49,9 +49,21 @@ export const usersApi = {
     );
   },
 
-  async getBookmarks(): Promise<ApiResponse<{ projects: string[]; articles: string[] }>> {
-    return apiUtils<{ projects: string[]; articles: string[] }>(() => 
-      axiosInstance.get("/users/bookmarks").then(res => res.data)
+  async getBookmarks(userId: string): Promise<ApiResponse<Project[]>> {
+    return apiUtils<Project[]>(() =>
+      axiosInstance.get(`/users/${userId}/bookmarks`).then(res => res.data)
+    );
+  },
+
+  async addBookmark(userId: string, projectId: string): Promise<ApiResponse<string[]>> {
+    return apiUtils<string[]>(() =>
+      axiosInstance.post(`/users/${userId}/bookmarks`, { projectId }).then(res => res.data)
+    );
+  },
+
+  async removeBookmark(userId: string, projectId: string): Promise<ApiResponse<string[]>> {
+    return apiUtils<string[]>(() =>
+      axiosInstance.delete(`/users/${userId}/bookmarks`, { data: { projectId } }).then(res => res.data)
     );
   },
 };

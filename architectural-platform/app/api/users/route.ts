@@ -37,12 +37,14 @@ export async function GET(req: Request) {
   }
 }
 
+import { Role } from '@/types/role';
+
 // DELETE multiple users
 export async function DELETE(req: NextRequest) {
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

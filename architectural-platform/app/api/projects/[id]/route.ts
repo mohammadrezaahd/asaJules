@@ -33,13 +33,15 @@ export async function GET(
   }
 }
 
+import { Role } from "@/types/role";
+
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== Role.ADMIN) {
     return NextResponse.json({ message: "Not authorized" }, { status: 401 });
   }
 
@@ -105,7 +107,7 @@ export async function DELETE(
 ) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== Role.ADMIN) {
     return NextResponse.json({ message: "Not authorized" }, { status: 401 });
   }
 

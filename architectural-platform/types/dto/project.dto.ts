@@ -1,5 +1,7 @@
 import { ModelConfig } from '../interfaces/project.interfaces';
 
+import { Status } from '../status';
+
 export interface CreateProjectDto {
   title: string;
   categories: string[]; // Changed to array
@@ -10,7 +12,7 @@ export interface CreateProjectDto {
   modelConfig: ModelConfig;
   contributors: string[]; // Array of user IDs
   tags: string[]; // Added tags
-  status: 'Draft' | 'Published'; // Added status
+  status: Status; // Added status
 }
 
 export type UpdateProjectDto = Partial<CreateProjectDto>;

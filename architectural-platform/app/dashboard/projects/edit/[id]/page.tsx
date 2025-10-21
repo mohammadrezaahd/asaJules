@@ -31,10 +31,12 @@ export default function EditProjectPage() {
   const [gallery, setGallery] = useState<MediaFile[]>([]);
   const [model, setModel] = useState<MediaFile | null>(null);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
+import { Status } from "@/types/status";
+
   const [users, setUsers] = useState<User[]>([]);
   const [contributors, setContributors] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [status, setStatus] = useState<"Draft" | "Published">("Draft");
+  const [status, setStatus] = useState<Status>(Status.DRAFT);
   const [mediaManagerOpen, setMediaManagerOpen] = useState(false);
   const [mediaManagerTarget, setMediaManagerTarget] = useState<
     "thumbnail" | "gallery" | "model" | null
@@ -101,7 +103,7 @@ export default function EditProjectPage() {
           setModelConfig(project.modelConfig || null);
           setContributors(project.contributors.map((c) => c._id));
           setTags(project.tags || []);
-          setStatus(project.status || "Draft");
+          setStatus(project.status || Status.DRAFT);
 
           // Set media files (create minimal MediaFile objects for display)
           if (project.thumbnail) {
@@ -363,12 +365,12 @@ export default function EditProjectPage() {
             <Select
               value={status}
               onChange={(e) =>
-                setStatus(e.target.value as "Draft" | "Published")
+                setStatus(e.target.value as Status)
               }
               label="Status"
             >
-              <MenuItem value="Draft">Draft</MenuItem>
-              <MenuItem value="Published">Published</MenuItem>
+              <MenuItem value={Status.DRAFT}>Draft</MenuItem>
+              <MenuItem value={Status.PUBLISHED}>Published</MenuItem>
             </Select>
           </FormControl>
           <FormControl fullWidth sx={{ mb: 2 }}>

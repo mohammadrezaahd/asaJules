@@ -42,8 +42,10 @@ const Profile = () => {
     avatarUrl: "",
   });
 
+import { Role } from "@/types/role";
+
   // Check if current user can edit this profile
-  const canEdit = session?.user?.id === id || session?.user?.role === "ADMIN";
+  const canEdit = session?.user?.id === id || session?.user?.role === Role.ADMIN;
 
   useEffect(() => {
     if (status === "loading" || !id) return;
@@ -264,7 +266,7 @@ const Profile = () => {
               <Box textAlign="center" mt={2}>
                 <Chip
                   label={user.role}
-                  color={user.role === "ADMIN" ? "secondary" : "primary"}
+                  color={user.role === Role.ADMIN ? "secondary" : "primary"}
                   variant="outlined"
                   sx={{ mb: 1 }}
                 />

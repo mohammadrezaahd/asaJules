@@ -103,8 +103,16 @@ function buildCategoryTree(categories: unknown[]): unknown[] {
   });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const token = await getToken({ req });
+    if (!token || token.role !== Role.ADMIN) {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 401 }
+      );
+    }
+
     await dbConnect();
     
     const { name, description, parent } = await req.json();
@@ -183,12 +191,14 @@ export async function POST(req: Request) {
   }
 }
 
+import { Role } from '@/types/role';
+
 // DELETE multiple categories
 export async function DELETE(req: NextRequest) {
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

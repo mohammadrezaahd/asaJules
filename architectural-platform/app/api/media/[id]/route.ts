@@ -33,6 +33,8 @@ export async function GET(
   }
 }
 
+import { Role } from "@/types/role";
+
 // DELETE media item
 export async function DELETE(
   req: NextRequest,
@@ -41,7 +43,7 @@ export async function DELETE(
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }
@@ -102,7 +104,7 @@ export async function PATCH(
   try {
     // Check authentication and authorization
     const token = await getToken({ req });
-    if (!token || token.role !== "ADMIN") {
+    if (!token || token.role !== Role.ADMIN) {
       return NextResponse.json(
         { error: "Unauthorized. Admin access required." },
         { status: 401 }

@@ -1,6 +1,8 @@
 import { Project } from './project.interfaces';
 import { Article } from './articles.interfaces';
 
+import { Role } from '../role';
+
 export interface User {
   _id: string;
   firstName: string;
@@ -8,7 +10,7 @@ export interface User {
   username: string;
   email: string;
   avatarUrl: string;
-  role: 'ADMIN' | 'USER' | 'STUDENT' | 'COLLEAGUE';
+  role: Role;
   bookmarks: {
     projects: string[];
     articles: string[];
