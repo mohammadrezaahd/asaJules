@@ -19,6 +19,8 @@ import { Edit, Save, Cancel } from "@mui/icons-material";
 import { usersApi } from "@/components/api/users.api";
 import { User } from "@/types";
 import { UpdateUserDto } from "@/types/dto/user.dto";
+import AvatarUploader from "@/components/AvatarUploader";
+import { AxiosError } from "axios";
 
 const Profile = () => {
   const { id } = useParams();
@@ -29,6 +31,7 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
   
   // Form state
   const [formData, setFormData] = useState({
@@ -87,6 +90,7 @@ const Profile = () => {
       setIsSaving(true);
       setError(null);
       setSuccess(null);
+      setFieldErrors({});
 
       const updateData: UpdateUserDto = {
         firstName: formData.firstName,
@@ -106,10 +110,30 @@ const Profile = () => {
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(response.error || "Failed to update profile");
+        // Handle API response errors
+        const errorData = (response as unknown as { errorData?: { field?: string; message?: string } }).errorData;
+        if (errorData?.field && typeof errorData.field === 'string') {
+          setFieldErrors({ 
+            [errorData.field]: errorData.message || response.error || "Field validation failed"
+          });
+        } else {
+          setError(response.error || "Failed to update profile");
+        }
       }
     } catch (err) {
-      setError("Error updating profile");
+      // Handle field-specific errors from Axios error response
+      if (err instanceof AxiosError && err.response?.data) {
+        const errorData = err.response.data;
+        if (errorData.field && typeof errorData.field === 'string') {
+          setFieldErrors({ 
+            [errorData.field]: errorData.error || errorData.message || "Field validation failed"
+          });
+        } else {
+          setError(errorData.error || errorData.message || "Error updating profile");
+        }
+      } else {
+        setError("Error updating profile");
+      }
       console.error("Error updating user:", err);
     } finally {
       setIsSaving(false);
@@ -129,6 +153,7 @@ const Profile = () => {
     setIsEditing(false);
     setError(null);
     setSuccess(null);
+    setFieldErrors({});
   };
 
   if (status === "loading" || isLoading) {
@@ -219,21 +244,20 @@ const Profile = () => {
         <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={3}>
           {/* Avatar Section */}
           <Box flex={{ md: 1 }} display="flex" flexDirection="column" alignItems="center">
-            <Avatar
-              src={isEditing ? formData.avatarUrl : user.avatarUrl}
-              sx={{ width: 150, height: 150, mb: 2 }}
-            >
-              {user.firstName?.[0]}{user.lastName?.[0]}
-            </Avatar>
-            
-            {isEditing && (
-              <TextField
-                fullWidth
-                label="Avatar URL"
-                value={formData.avatarUrl}
-                onChange={(e) => handleInputChange("avatarUrl", e.target.value)}
-                size="small"
+            {isEditing ? (
+              <AvatarUploader
+                currentAvatarUrl={user.avatarUrl}
+                userInitials={`${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`}
+                onAvatarChange={(url) => handleInputChange("avatarUrl", url)}
+                disabled={isSaving}
               />
+            ) : (
+              <Avatar
+                src={user.avatarUrl}
+                sx={{ width: 150, height: 150, mb: 2 }}
+              >
+                {user.firstName?.[0]}{user.lastName?.[0]}
+              </Avatar>
             )}
             
             {!isEditing && (
@@ -281,6 +305,8 @@ const Profile = () => {
                 onChange={(e) => handleInputChange("username", e.target.value)}
                 disabled={!isEditing}
                 variant={isEditing ? "outlined" : "filled"}
+                error={isEditing && !!fieldErrors.username}
+                helperText={isEditing && (fieldErrors.username || "Choose a unique username (3-30 characters, letters, numbers, _ and - only)")}
               />
               
               <TextField
@@ -291,6 +317,8 @@ const Profile = () => {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 disabled={!isEditing}
                 variant={isEditing ? "outlined" : "filled"}
+                error={isEditing && !!fieldErrors.email}
+                helperText={isEditing && fieldErrors.email}
               />
             </Box>
           </Box>

@@ -6,6 +6,7 @@ import User from "@/models/User";
 import { verifyPassword } from "@/lib/auth";
 import config from "@/lib/config";
 import { AuthOptions } from "next-auth";
+import { generateUniqueUsername } from "@/lib/userUtils";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -16,7 +17,7 @@ export const authOptions: AuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        emailOrUsername: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -24,8 +25,15 @@ export const authOptions: AuthOptions = {
           return null;
         }
         await dbConnect();
-        console.log("Authorizing user with email:", credentials);
-        const user = await User.findOne({ email: credentials.email });
+        console.log("Authorizing user with emailOrUsername:", credentials.emailOrUsername);
+        
+        // Find user by email or username
+        const user = await User.findOne({ 
+          $or: [
+            { email: credentials.emailOrUsername },
+            { username: credentials.emailOrUsername }
+          ]
+        });
 
         if (!user || !user.passwordHash) {
           return null;
@@ -57,11 +65,14 @@ export const authOptions: AuthOptions = {
         await dbConnect();
         let dbUser = await User.findOne({ email: user.email });
         if (!dbUser) {
+          // Generate unique username for Google users
+          const uniqueUsername = await generateUniqueUsername(user.email || '');
+          
           dbUser = new User({
             email: user.email,
             firstName: user.name?.split(" ")[0] || "",
             lastName: user.name?.split(" ")[1] || "",
-            username: user.email?.split("@")[0],
+            username: uniqueUsername,
             avatarUrl: user.image,
             provider: "google",
             providerId: account.providerAccountId,

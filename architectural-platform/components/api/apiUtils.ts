@@ -1,4 +1,5 @@
 import { ApiResponse, ListApiResponse, PaginationInfo } from "@/types";
+import { AxiosError } from "axios";
 
 /**
  * Generic API utility function to standardize API responses
@@ -16,6 +17,19 @@ export async function apiUtils<T>(
     };
   } catch (error) {
     console.error("API Error:", error);
+    
+    // Handle AxiosError specifically
+    if (error instanceof AxiosError && error.response?.data) {
+      const errorData = error.response.data;
+      // Return the error data as is so components can access field, message, etc.
+      return {
+        isSuccess: false,
+        error: errorData.message || errorData.error || "Request failed",
+        // Store additional error info for component access
+        errorData: errorData,
+      } as ApiResponse<T> & { errorData?: Record<string, unknown> };
+    }
+    
     return {
       isSuccess: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",

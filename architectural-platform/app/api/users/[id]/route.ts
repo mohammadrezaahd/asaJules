@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 import dbConnect from "@/lib/db";
 import { User } from "@/lib/models";
 import { UpdateUserDto } from "@/types/dto/user.dto";
+import { checkUserExists, validateUsername } from "@/lib/userUtils";
 
 // GET single user
 export async function GET(
@@ -13,7 +14,8 @@ export async function GET(
   try {
     await dbConnect();
     
-    const user = await User.findById(params.id).select('-password');
+    const { id } = await params;
+    const user = await User.findById(id).select('-password');
     
     if (!user) {
       return NextResponse.json(
@@ -47,8 +49,10 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
+
     // Users can only update their own profile unless they're admin
-    if (token.id !== params.id && token.role !== "ADMIN") {
+    if (token.id !== id && token.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Forbidden. You can only update your own profile." },
         { status: 403 }
@@ -60,13 +64,50 @@ export async function PUT(
     const body = await req.json() as UpdateUserDto;
     
     // Don't allow users to change their own role unless they're admin
-    if (token.id === params.id && body.role && token.role !== "ADMIN") {
+    if (token.id === id && body.role && token.role !== "ADMIN") {
       delete body.role;
+    }
+
+    // Validate username if it's being updated
+    if (body.username) {
+      const usernameValidation = validateUsername(body.username);
+      if (!usernameValidation.valid) {
+        return NextResponse.json(
+          { error: usernameValidation.message },
+          { status: 400 }
+        );
+      }
+
+      // Check if email or username already exists (excluding current user)
+      const existsCheck = await checkUserExists(body.email || '', body.username, id);
+      if (existsCheck.exists) {
+        return NextResponse.json(
+          { 
+            error: existsCheck.message,
+            field: existsCheck.field 
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // If only email is being updated, check for duplicates
+    if (body.email && !body.username) {
+      const existsCheck = await checkUserExists(body.email, '', id);
+      if (existsCheck.exists) {
+        return NextResponse.json(
+          { 
+            error: existsCheck.message,
+            field: existsCheck.field 
+          },
+          { status: 409 }
+        );
+      }
     }
     
     // Find and update the user
     const updatedUser = await User.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { 
         new: true,
@@ -109,8 +150,10 @@ export async function DELETE(
 
     await dbConnect();
     
+    const { id } = await params;
+
     // Prevent admin from deleting themselves
-    if (params.id === token.id) {
+    if (id === token.id) {
       return NextResponse.json(
         { error: "You cannot delete your own account" },
         { status: 400 }
@@ -118,7 +161,7 @@ export async function DELETE(
     }
     
     // Find the user
-    const user = await User.findById(params.id);
+    const user = await User.findById(id);
     
     if (!user) {
       return NextResponse.json(
@@ -128,7 +171,7 @@ export async function DELETE(
     }
 
     // Delete the user
-    await User.findByIdAndDelete(params.id);
+    await User.findByIdAndDelete(id);
     
     return NextResponse.json(
       { 
